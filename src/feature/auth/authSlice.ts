@@ -1,4 +1,6 @@
+// src/feature/auth/authSlice.ts
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { authApi } from "./authApi";
 
 // Mock async API for demo
 const fakeApiCall = <T>(response: T, shouldFail = false, delay = 1000) =>
@@ -9,21 +11,23 @@ const fakeApiCall = <T>(response: T, shouldFail = false, delay = 1000) =>
     }, delay);
   });
 
-interface User {
+type User = {
   _id: string;
   firstname: string;
   lastname: string;
   username: string;
   email: string;
-  role: string;
-}
+};
 
-interface Tokens {
+type Tokens = {
   accessToken: string;
   refreshToken: string;
-}
+};
 
-interface AuthState {
+type AuthStep = "login" | "otp" | "authenticated";
+type RegisterStep = "email" | "otp" | "details" | "done";
+
+type AuthState = {
   isAuthenticated: boolean;
   user: User | null;
   tokens: Tokens | null;
@@ -31,13 +35,12 @@ interface AuthState {
   error: string | null;
   successMessage: string | null;
   secret: string | null;
-  step: 'login' | 'otp' | 'authenticated';
-  // Registration-specific
-  registerStep: 'email' | 'otp' | 'details' | 'done';
+  step: AuthStep;
+  registerStep: RegisterStep;
   registrationToken: string | null;
   resetToken: string | null;
-  hydrated: boolean;  
-}
+  hydrated: boolean;
+};
 
 const initialState: AuthState = {
   isAuthenticated: false,
@@ -47,8 +50,8 @@ const initialState: AuthState = {
   error: null,
   successMessage: null,
   secret: null,
-  step: 'login',
-  registerStep: 'email',
+  step: "login",
+  registerStep: "email",
   registrationToken: null,
   resetToken: null,
   hydrated: false,
@@ -56,186 +59,102 @@ const initialState: AuthState = {
 
 // --- STEP 1: Request OTP ---
 export const requestRegisterOtp = createAsyncThunk(
-  'auth/requestRegisterOtp',
-  async ({ email }: { email: string }, { rejectWithValue }) => {
+  "auth/requestRegisterOtp",
+  async (data: { email: string }, { rejectWithValue }) => {
     try {
-      const res = await fetch('http://localhost:5000/api/v1/auth/otp/request', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        return rejectWithValue(error.message || 'Failed to request OTP');
-      }
-      return (await res.json()) as { secret: string; otp?: string };
+      return await authApi.requestRegisterOtp(data.email);
     } catch (err: any) {
-      return rejectWithValue(err.message);
+      return rejectWithValue(err.response?.data?.message || err.message);
     }
   }
 );
 
 // --- STEP 2: Verify OTP ---
 export const verifyRegisterOtp = createAsyncThunk(
-  'auth/verifyRegisterOtp',
-  async (
-    { email, otp, secret }: { email: string; otp: string; secret: string },
-    { rejectWithValue }
-  ) => {
+  "auth/verifyRegisterOtp",
+  async (data: { email: string; otp: string; secret: string }, { rejectWithValue }) => {
     try {
-      const res = await fetch('http://localhost:5000/api/v1/auth/otp/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, otp, secret }),
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        return rejectWithValue(error.message || 'OTP verification failed');
-      }
-      return (await res.json()) as { registrationToken: string };
+      return await authApi.verifyRegisterOtp(data);
     } catch (err: any) {
-      return rejectWithValue(err.message);
+      return rejectWithValue(err.response?.data?.message || err.message);
     }
   }
 );
 
 // --- STEP 3: Register user ---
 export const registerUser = createAsyncThunk(
-  'auth/registerUser',
-  async (
-    payload: {
-      username: string;
-      firstname: string;
-      lastname: string;
-      password: string;
-      registrationToken: string;
-    },
-    { rejectWithValue }
-  ) => {
+  "auth/registerUser",
+  async (payload: {
+    username: string;
+    firstname: string;
+    lastname: string;
+    password: string;
+    registrationToken: string;
+  }, { rejectWithValue }) => {
     try {
-      const res = await fetch('http://localhost:5000/api/v1/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        return rejectWithValue(error.message || 'Registration failed');
-      }
-      return (await res.json()) as User;
+      return await authApi.registerUser(payload);
     } catch (err: any) {
-      return rejectWithValue(err.message);
+      return rejectWithValue(err.response?.data?.message || err.message);
     }
   }
 );
 
 // Step 1 → request OTP
 export const loginUser = createAsyncThunk(
-  'auth/loginUser',
+  "auth/loginUser",
   async (payload: { email: string; password: string }, { rejectWithValue }) => {
     try {
-      const res = await fetch('http://localhost:5000/api/v1/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        return rejectWithValue(error.message || 'Login failed');
-      }
-      return (await res.json()) as { message: string; secret: string };
+      return await authApi.loginUser(payload);
     } catch (err: any) {
-      return rejectWithValue(err.message);
+      return rejectWithValue(err.response?.data?.message || err.message);
     }
   }
 );
 
 // Step 2 → verify OTP
 export const verifyOtp = createAsyncThunk(
-  'auth/verifyOtp',
+  "auth/verifyOtp",
   async (payload: { email: string; secret: string; otp: string }, { rejectWithValue }) => {
     try {
-      const res = await fetch('http://localhost:5000/api/v1/auth/login/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        return rejectWithValue(error.message || 'OTP verification failed');
-      }
-      return (await res.json()) as { user: User; tokens: Tokens };
+      return await authApi.verifyOtp(payload);
     } catch (err: any) {
-      return rejectWithValue(err.message);
+      return rejectWithValue(err.response?.data?.message || err.message);
     }
   }
 );
 
 // --- Step 1: Request OTP ---
 export const requestForgotOtp = createAsyncThunk(
-  'auth/requestForgotOtp',
-  async ({ email }: { email: string }, { rejectWithValue }) => {
+  "auth/requestForgotOtp",
+  async (data: { email: string }, { rejectWithValue }) => {
     try {
-      const res = await fetch('http://localhost:5000/api/v1/auth/forgot-password/request', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        return rejectWithValue(error.message);
-      }
-      return (await res.json()) as { message: string; secret: string; otp?: string };
+      return await authApi.requestForgotOtp(data.email);
     } catch (err: any) {
-      return rejectWithValue(err.message);
+      return rejectWithValue(err.response?.data?.message || err.message);
     }
   }
 );
 
 // --- Step 2: Verify OTP ---
 export const verifyForgotOtp = createAsyncThunk(
-  'auth/verifyForgotOtp',
-  async (
-    { email, otp, secret }: { email: string; otp: string; secret: string },
-    { rejectWithValue }
-  ) => {
+  "auth/verifyForgotOtp",
+  async (data: { email: string; otp: string; secret: string }, { rejectWithValue }) => {
     try {
-      const res = await fetch('http://localhost:5000/api/v1/auth/forgot-password/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, otp, secret }),
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        return rejectWithValue(error.message);
-      }
-      return (await res.json()) as { resetToken: string };
+      return await authApi.verifyForgotOtp(data);
     } catch (err: any) {
-      return rejectWithValue(err.message);
+      return rejectWithValue(err.response?.data?.message || err.message);
     }
   }
 );
 
 // --- Step 3: Reset Password ---
 export const resetPassword = createAsyncThunk(
-  'auth/resetPassword',
-  async (
-    { newPassword, confirmPassword, resetToken }: { newPassword: string; confirmPassword: string; resetToken: string },
-    { rejectWithValue }
-  ) => {
+  "auth/resetPassword",
+  async (data: { newPassword: string; confirmPassword: string; resetToken: string }, { rejectWithValue }) => {
     try {
-      const res = await fetch('http://localhost:5000/api/v1/auth/forgot-password/reset', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newPassword, confirmPassword, resetToken }),
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        return rejectWithValue(error.message);
-      }
-      return await res.json();
+      return await authApi.resetPassword(data);
     } catch (err: any) {
-      return rejectWithValue(err.message);
+      return rejectWithValue(err.response?.data?.message || err.message);
     }
   }
 );
@@ -249,11 +168,11 @@ const authSlice = createSlice({
       state.user = null;
       state.tokens = null;
       state.secret = null;
-      state.step = 'login';
-      state.registerStep = 'email';
+      state.step = "login";
+      state.registerStep = "email";
       state.registrationToken = null;
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
     },
     clearMessages: (state) => {
       state.error = null;
@@ -264,12 +183,10 @@ const authSlice = createSlice({
       state.user = action.payload.user || null;
       state.isAuthenticated = true;
       state.hydrated = true;
-      // state.step = 'authenticated';
     },
-hydrate: (state) => {
-  state.hydrated = true; // just mark hydration complete
-},
-
+    hydrate: (state) => {
+      state.hydrated = true;
+    },
   },
   extraReducers: (builder) => {
     // STEP 1 → Request OTP
@@ -346,6 +263,7 @@ hydrate: (state) => {
       state.loading = false;
       state.isAuthenticated = true;
       state.user = action.payload.user;
+      // state.user = { _id: "1", firstname: "John", lastname: "Doe", username: "johndoe", email: "johndoe@example.com" };
       state.tokens = action.payload.tokens;
       state.step = 'authenticated';
       localStorage.setItem('accessToken', action.payload.tokens.accessToken);

@@ -1,0 +1,153 @@
+I need a settings page. Please use our glass morphism design system with purple-pink gradients, smooth card animations, and consistent hover effects.
+
+---------------------------------------------------------------------------------
+
+## DESIGN SYSTEM SPECIFICATION
+
+### **Overall Design Aesthetic**
+- **Style**: Modern Glass Morphism with Gradient Accents
+- **Theme**: Futuristic yet Elegant
+- **Inspiration**: Translucent layers, animated gradients, smooth interactions
+
+### **Color Palette**
+**Primary Gradients**: 
+- Purple to Pink (`from-purple-500 to-pink-500`)
+- Indigo to Purple (`from-indigo-500 to-purple-500`)
+- Blue to Cyan (`from-blue-400 to-cyan-400`)
+
+**Backgrounds**:
+- Light: `bg-white/80` with backdrop blur
+- Dark: `bg-gray-900/80` with backdrop blur
+- Glass effect: `backdrop-blur-xl` with border transparency
+
+### **Animation Principles**
+- **Entrance**: Staggered fade-in with translateY movement
+- **Hover**: Scale transforms (105-110%) with gradient overlays
+- **Transitions**: Duration 300ms with ease-out timing
+- **Micro-interactions**: Smooth state changes with visual feedback
+
+### **Layout & Spacing**
+- **Border Radius**: Rounded corners (`rounded-xl`, `rounded-2xl`)
+- **Spacing**: Consistent 4px grid system
+- **Borders**: Thin borders with transparency (`border-white/20`)
+- **Shadows**: Soft shadows for depth (`shadow-lg`, `shadow-2xl`)
+
+### **Interactive States**
+- **Active**: Gradient background with matching text gradient
+- **Hover**: Scale up + gradient overlay + border highlight
+- **Focus**: Subtle glow effects
+- **Loading**: Smooth spinners and skeleton animations
+
+### **Responsive Behavior**
+- Mobile-first with smooth overlay transitions
+- Touch-friendly targets (min 44px)
+- Adaptive layouts that maintain aesthetic across screens
+
+---
+
+## **Component-Specific Instructions**
+
+[Describe your new component here...]
+
+**Please apply our design system with:**
+- Glass morphism background with backdrop blur
+- Purple-pink gradient accents
+- Smooth entrance animations
+- Hover scale transformations
+- Consistent spacing and typography
+- Dark mode compatibility
+- Mobile-responsive behavior
+
+**Expected behaviors:**
+- Staggered animations for multiple elements
+- Gradient borders on active states
+- Smooth transitions between states
+- Visual feedback on interactions
+
+
+---------------------------------------------------------------------------------
+
+react-architecture/
+├── node_modules/
+├── public/
+└── src/
+    ├── api/
+    │   └── index.ts
+    ├── app/
+    │   ├── App.tsx
+    │   └── store.ts
+    ├── assets/
+    │   └── react.svg
+    ├── components/
+    │   ├── sidebar/
+    │   │   ├── SidebarItem.tsx
+    │   │   ├── SidebarSubmenu.tsx
+    │   ├── UI/
+    │   │   ├── Button.tsx
+    │   │   ├── Card.tsx
+    │   │   ├── Input.tsx
+    │   │   ├── Modal.tsx
+    │   │   └── ThemeToggle.tsx
+    │   ├── Footer.tsx
+    │   ├── Header.tsx
+    │   ├── Layout.tsx
+    │   ├── Navbar.tsx
+    │   ├── ProtectedLayout.tsx
+    │   └── Sidebar.tsx
+    ├── config/
+    │   └── config.ts
+    │   └── menuConfig.ts
+    ├── features/
+    │   ├── auth/
+    │   │   ├── Auth.tsx
+    │   │   ├── authApi.ts
+    │   │   └── authSlice.ts
+    │   ├── counter/
+    │   │   ├── Counter.tsx
+    │   │   ├── counterApi.ts
+    │   │   └── counterSlice.ts
+    │   └── theme/
+    │       └── themeSlice.ts
+    ├── hooks/
+    │   ├── index.ts
+    │   ├── useAppDispatch.ts
+    │   ├── useAppSelector.ts
+    │   ├── useDebounce.ts
+    │   └── useLocalStorage.ts
+    ├── pages/
+    │   ├── AboutPage.tsx
+    │   ├── Contact.tsx
+    │   ├── Dashboard.tsx
+    │   ├── ForgotPasswordPage.tsx
+    │   ├── HomePage.tsx
+    │   ├── LoginPage.tsx
+    │   ├── RegisterPage.tsx
+    ├── providers/
+    │       └── AuthProvider.tsx
+    │       └── ThemeProvider.tsx
+    ├── routes/
+    │       └── AppRoutes.tsx
+    │       └── index.tsx
+    ├── types/
+    │   └── index.ts
+    ├── utils/
+    │   ├── apiUtils.ts
+    │   ├── dateUtils.ts
+    │   └── stringUtils.ts
+    ├── App.css
+    ├── App.tsx
+    ├── main.tsx
+    ├── index.css
+    └── vite-env.d.ts
+├── .env
+├── .gitignore
+├── .eslintconfig.js
+├── index.html
+├── package.json
+├── package-lock.json
+├── README.md
+├── tailwind.config.js
+├── tsconfig.json
+├── tsconfig.app.json
+├── tsconfig.node.json
+└── vite.config.ts

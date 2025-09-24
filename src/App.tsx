@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import RegisterPage from './pages/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import { restoreAuth, hydrate } from './feature/auth/authSlice';
+import AboutPage from './pages/AboutPage';
 
 function App() {
     const dispatch = useAppDispatch();
@@ -42,10 +43,12 @@ function App() {
             {/* Protected routes wrapped in ProtectedLayout */}
             <Route element={<ProtectedLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/about" element={<AboutPage />} />
               {/* Add other protected routes here, e.g.: */}
               {/* <Route path="/kanban" element={<KanbanPage />} /> */}
               {/* Default redirect for / to dashboard */}
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/about" element={<Navigate to="/about" replace />} />
             </Route>
             {/* Catch-all: Redirect to login or home */}
             <Route path="*" element={<Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />} />        

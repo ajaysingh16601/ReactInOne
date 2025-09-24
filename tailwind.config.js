@@ -20,6 +20,20 @@ module.exports = {
                 warning: 'hsl(var(--warning) / <alpha-value>)',
                 error: 'hsl(var(--error) / <alpha-value>)',
             },
+            keyframes: {
+                "fade-in-up": {
+                    "0%": { opacity: "0", transform: "translateY(20px)" },
+                    "100%": { opacity: "1", transform: "translateY(0)" },
+                },
+                text: {
+                    "0%, 100%": { backgroundSize: "200% 200%", backgroundPosition: "left center" },
+                    "50%": { backgroundSize: "200% 200%", backgroundPosition: "right center" },
+                },
+            },
+            animation: {
+                "fade-in-up": "fade-in-up 0.8s ease-out forwards",
+                text: "text 2s ease infinite",
+            },
         },
     },
     plugins: [],

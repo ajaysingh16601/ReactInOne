@@ -1,77 +1,67 @@
-// src/components/Sidebar.tsx
-import React from 'react';
-import { HiChartPie, HiViewBoards, HiInbox, HiUserCircle, HiShoppingBag, HiArrowSmRight, HiTable } from "react-icons/hi";
+import React, { lazy, Suspense } from "react";
+import { menuItems } from "../config/menuConfig";
+import SidebarItem from "./sidebar/SidebarItem";
+import SidebarSubmenu from "./sidebar/SidebarSubmenu";
+const LazyFooter = lazy(() => import('./Footer'));
 
-// Define menu items dynamically (exported for reusability)
-export const menuItems = [
-  { label: "Dashboard", href: "/", icon: <HiChartPie /> },
-  { label: "Kanban", href: "/kanban", icon: <HiViewBoards />, badge: "Pro" },
-  { label: "Inbox", href: "/inbox", icon: <HiInbox />, badge: "3" },
-  { label: "Users", href: "/users", icon: <HiUserCircle /> },
-  { label: "Products", href: "/products", icon: <HiShoppingBag /> },
-  { label: "Sign In", href: "/signin", icon: <HiArrowSmRight /> },
-  { label: "Sign Up", href: "/signup", icon: <HiTable /> },
-  {
-    label: "Settings",
-    icon: <HiChartPie />,
-    children: [
-      { label: "Profile", href: "/settings/profile" },
-      { label: "Preferences", href: "/settings/preferences" },
-    ],
-  },
-];
+interface SidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
 
-const Sidebar: React.FC<{ isOpen: boolean }> = ({ isOpen }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   return (
-    <aside
-      className={`fixed top-0 left-0 z-40 w-64 h-screen pt-20 transition-transform bg-white dark:bg-gray-800 border-r dark:border-gray-700 ${
-        isOpen ? "translate-x-0" : "-translate-x-full"
-      } md:translate-x-0`}
-    >
-      <ul className="space-y-2 px-3">
-        {menuItems.map((item, idx) =>
-          item.children ? (
-            <li key={idx}>
-              <details className="group">
-                <summary className="flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
-                  {item.icon}
-                  <span>{item.label}</span>
-                </summary>
-                <ul className="pl-6 mt-1 space-y-1">
-                  {item.children.map((child, cidx) => (
-                    <li key={cidx}>
-                      <a
-                        href={child.href}
-                        className="block p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-                      >
-                        {child.label}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            </li>
-          ) : (
-            <li key={idx}>
-              <a
-                href={item.href}
-                className="flex items-center justify-between p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+    <>
+      {/* Background Overlay for Mobile */}
+      {isOpen && (
+        <div className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm md:hidden" 
+        onClick={onClose}
+        />
+      )}
+      
+      <aside
+        className={`fixed top-0 left-0 z-40 w-64 h-screen pt-20 transition-all duration-500 ease-out bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-r border-white/20 dark:border-gray-700/50 shadow-2xl ${
+          isOpen ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0 md:translate-x-0 md:opacity-100"
+        }`}
+      >
+        {/* Sidebar Background Effects */}
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute -top-20 -left-20 w-40 h-40 bg-purple-400/10 rounded-full blur-2xl"></div>
+          <div className="absolute -bottom-20 -right-20 w-40 h-40 bg-blue-400/10 rounded-full blur-2xl"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent dark:from-gray-800/20"></div>
+        </div>
+
+        {/* Navigation Items */}
+        <div className="relative z-10 h-full flex flex-col">
+          <ul className="space-y-1 px-4 py-4 flex-1">
+            {menuItems.map((item, idx) => (
+              <div
+                key={idx}
+                className="transform transition-all duration-300 hover:translate-x-2"
+                style={{ transitionDelay: `${idx * 50}ms` }}
               >
-                <div className="flex items-center gap-2">
-                  {item.icon}
-                  <span>{item.label}</span>
-                </div>
-                {item.badge && (
-                  <span className="ml-3 px-2 py-0.5 text-xs font-medium bg-gray-200 text-gray-800 rounded-full dark:bg-gray-700 dark:text-gray-300">
-                    {item.badge}
-                  </span>
+                {item.children ? (
+                  <SidebarSubmenu item={item} onCloseSidebar={onClose} />
+                ) : (
+                  <SidebarItem item={item} onCloseSidebar={onClose} />
                 )}
-              </a>
-            </li>
-          )
-        )}
-      </ul>
-    </aside>
+              </div>
+            ))}
+          </ul>
+
+          {/* Footer */}
+          <div className="p-4 border-t border-white/20 dark:border-gray-700/30">
+            <Suspense fallback={
+              <div className="flex items-center justify-center p-4">
+                <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            }>
+              <LazyFooter />
+            </Suspense>
+          </div>
+        </div>
+      </aside>
+    </>
   );
 };
 
