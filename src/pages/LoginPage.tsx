@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../hooks';
-import { loginUser, verifyOtp, clearMessages } from '../feature/auth/authSlice';
-import { useNavigate } from 'react-router-dom';
+import { loginUser, verifyOtp } from '../feature/auth/authSlice';
+import { useNavigate, Link } from 'react-router-dom';
 import { HiUser } from 'react-icons/hi';
 import { CiLock } from 'react-icons/ci';
 import { MdOutlinePassword } from 'react-icons/md';
-import { Link } from 'react-router-dom';
+// import { FcGoogle } from 'react-icons/fc';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -24,11 +24,37 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     if (!secret) return;
     dispatch(verifyOtp({ email, secret, otp })).then((res: any) => {
-      if (res.meta.requestStatus === 'fulfilled') {
-        navigate('/dashboard');
-      }
+      if (res.meta.requestStatus === 'fulfilled') navigate('/dashboard');
     });
   };
+
+  // const handleGoogleLogin = () => {
+  //   const googleAuthUrl = "http://localhost:5000/api/v1/auth/google";
+  //   const width = 600, height = 700;
+  //   const left = window.screenX + (window.outerWidth - width) / 2;
+  //   const top = window.screenY + (window.outerHeight - height) / 2;
+
+  //   const popup = window.open(
+  //     googleAuthUrl,
+  //     'Google Login',
+  //     `width=${width},height=${height},left=${left},top=${top}`
+  //   );
+
+  //   // Listen for message from popup
+  //   window.addEventListener('message', (event) => {
+  //     if (event.origin !== "http://localhost:5173") return; // adjust if different
+  //     if (event.data.type === 'google-login-success') {
+  //       const { user, tokens } = event.data.payload;
+  //       // Store tokens and user
+  //       localStorage.setItem('accessToken', tokens.accessToken);
+  //       localStorage.setItem('refreshToken', tokens.refreshToken);
+  //       localStorage.setItem('user', JSON.stringify(user));
+
+  //       navigate('/dashboard');
+  //       popup?.close();
+  //     }
+  //   });
+  // };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 px-4">
@@ -96,23 +122,28 @@ const LoginPage: React.FC = () => {
             </button>
           </form>
         )}
+
+        {/* Google Login */}
+        {/* <div className="mt-6">
+          <button
+            onClick={handleGoogleLogin}
+            className="w-full flex items-center justify-center gap-2 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+          >
+            <FcGoogle size={20} /> Continue with Google
+          </button>
+        </div> */}
+
         {/* Additional Links */}
         <div className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
           <p>
             Forgot your password?{' '}
-            <Link
-              to="/forgot-password"
-              className="text-blue-600 dark:text-blue-400 hover:underline"
-            >
+            <Link to="/forgot-password" className="text-blue-600 dark:text-blue-400 hover:underline">
               Reset here
             </Link>
           </p>
           <p className="mt-2">
             Don’t have an account?{' '}
-            <Link
-              to="/register"
-              className="text-blue-600 dark:text-blue-400 hover:underline"
-            >
+            <Link to="/register" className="text-blue-600 dark:text-blue-400 hover:underline">
               Sign up
             </Link>
           </p>

@@ -8,9 +8,9 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   useEffect(() => {
     const accessToken = localStorage.getItem("accessToken");
     const refreshToken = localStorage.getItem("refreshToken");
-
-    if (accessToken && refreshToken) {
-      dispatch(restoreAuth({ tokens: { accessToken, refreshToken } }));
+    const user = localStorage.getItem("user");
+    if (accessToken && refreshToken && user) {
+      dispatch(restoreAuth({ tokens: { accessToken, refreshToken }, user: JSON.parse(user) }));
     } else {
       dispatch(hydrate());
     }

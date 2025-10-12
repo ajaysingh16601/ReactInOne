@@ -17,6 +17,20 @@ type User = {
   lastname: string;
   username: string;
   email: string;
+  emailVerified?: boolean;
+  phoneVerified?: boolean;
+  twoFactorEnabled?: boolean;
+  role?: string;
+  isActive?: boolean;
+  kycStatus?: string;
+  lastSeen?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  profileImageUrl?: string;
+  phone?: string | null;
+  lastLoginAt?: string | null;
+  kycDetails?: string | null;
+  bio?: string;
 };
 
 type Tokens = {
@@ -55,6 +69,39 @@ const initialState: AuthState = {
   registrationToken: null,
   resetToken: null,
   hydrated: false,
+};
+
+// Helper functions for localStorage
+const saveToLocalStorage = (user: User, tokens: Tokens) => {
+  localStorage.setItem('accessToken', tokens.accessToken);
+  localStorage.setItem('refreshToken', tokens.refreshToken);
+  localStorage.setItem('user', JSON.stringify(user));
+};
+
+const clearLocalStorage = () => {
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("refreshToken");
+  localStorage.removeItem("user");
+};
+
+const loadFromLocalStorage = () => {
+  const accessToken = localStorage.getItem('accessToken');
+  const refreshToken = localStorage.getItem('refreshToken');
+  const userStr = localStorage.getItem('user');
+  
+  if (accessToken && refreshToken && userStr) {
+    try {
+      const user = JSON.parse(userStr);
+      return {
+        tokens: { accessToken, refreshToken },
+        user
+      };
+    } catch (error) {
+      console.error('Error parsing user from localStorage:', error);
+      clearLocalStorage();
+    }
+  }
+  return null;
 };
 
 // --- STEP 1: Request OTP ---
@@ -171,8 +218,7 @@ const authSlice = createSlice({
       state.step = "login";
       state.registerStep = "email";
       state.registrationToken = null;
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
+      clearLocalStorage();
     },
     clearMessages: (state) => {
       state.error = null;
@@ -185,6 +231,14 @@ const authSlice = createSlice({
       state.hydrated = true;
     },
     hydrate: (state) => {
+      // Try to restore auth from localStorage
+      const savedAuth = loadFromLocalStorage();
+      if (savedAuth) {
+        state.tokens = savedAuth.tokens;
+        state.user = savedAuth.user;
+        state.isAuthenticated = true;
+        state.step = "authenticated";
+      }
       state.hydrated = true;
     },
   },
@@ -263,11 +317,10 @@ const authSlice = createSlice({
       state.loading = false;
       state.isAuthenticated = true;
       state.user = action.payload.user;
-      // state.user = { _id: "1", firstname: "John", lastname: "Doe", username: "johndoe", email: "johndoe@example.com" };
       state.tokens = action.payload.tokens;
       state.step = 'authenticated';
-      localStorage.setItem('accessToken', action.payload.tokens.accessToken);
-      localStorage.setItem('refreshToken', action.payload.tokens.refreshToken);
+      // Save to localStorage
+      saveToLocalStorage(action.payload.user, action.payload.tokens);
     });
     builder.addCase(verifyOtp.rejected, (state, action) => {
       state.loading = false;

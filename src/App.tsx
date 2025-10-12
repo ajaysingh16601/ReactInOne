@@ -17,9 +17,10 @@ function App() {
     // Restore authentication if tokens exist
     const accessToken = localStorage.getItem('accessToken');
     const refreshToken = localStorage.getItem('refreshToken');
-    if (accessToken && refreshToken) {
+    const user = localStorage.getItem('user');
+    if (accessToken && refreshToken && user) {
       console.log('Restoring auth from localStorage');
-      dispatch(restoreAuth({ tokens: { accessToken, refreshToken } }));
+      dispatch(restoreAuth({ tokens: { accessToken, refreshToken }, user: JSON.parse(user) }));
     } else {
       dispatch(hydrate()); // mark complete even if not logged in
     }
