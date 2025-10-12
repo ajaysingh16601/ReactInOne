@@ -61,18 +61,18 @@ const AboutPage: React.FC = () => {
             </div>
 
             {/* Main Content */}
-            <div className="relative z-10 w-full max-w-6xl px-4 py-12">
+            <div className="relative z-10 w-full px-4 py-2">
                 {/* Animated heading with enhanced effects */}
-                <div className="text-center mb-12">
+                <div className="text-center">
                     <div className="relative inline-block">
-                        <h1 className="text-5xl md:text-7xl font-black bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 mb-4 animate-gradient-x">
+                        <h4 className="text-3xl md:text-4xl font-black bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 mb-1 animate-gradient-x">
                             About This Application
-                        </h1>
+                        </h4>
                         <div className="absolute -bottom-2 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-pink-500 rounded-full animate-pulse-scale"></div>
                     </div>
                     
                     {/* Subtitle with typing animation */}
-                    <p className={`text-xl md:text-2xl text-gray-600 dark:text-gray-300 mt-8 max-w-3xl mx-auto leading-relaxed transition-all duration-1000 transform ${
+                    <p className={`text-lg md:text-lg text-gray-600 dark:text-gray-300 mt-8 max-w-3xl mx-auto leading-relaxed transition-all duration-1000 transform ${
                         animate ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
                     }`}>
                         This application is built to provide a{" "}
@@ -86,7 +86,7 @@ const AboutPage: React.FC = () => {
                 </div>
 
                 {/* Enhanced Feature Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-16">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
                     {features.map((item, i) => (
                         <div
                             key={i}
@@ -109,9 +109,9 @@ const AboutPage: React.FC = () => {
                             </div>
                             
                             {/* Content */}
-                            <h3 className={`relative z-10 text-2xl font-bold bg-gradient-to-r ${item.gradient} bg-clip-text text-transparent mb-3`}>
+                            <h5 className={`relative z-10 text-xl font-bold bg-gradient-to-r ${item.gradient} bg-clip-text text-transparent mb-3`}>
                                 {item.title}
-                            </h3>
+                            </h5>
                             <p className="relative z-10 text-gray-600 dark:text-gray-300 leading-relaxed">
                                 {item.desc}
                             </p>

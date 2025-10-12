@@ -2,7 +2,7 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family:  Calibri, 'Gill Sans', 'Gill Sans MT','Trebuchet MS', sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
@@ -17,7 +17,7 @@
   /* Light Mode Defaults */
   --primary: 220 100% 50%;    /* Vibrant blue */
   --secondary: 200 80% 40%;   /* Teal */
-  --background: 0 0% 100%;    /* White */
+  --background: 0 0% 95%;    /* gray */
   --foreground: 0 0% 10%;     /* Near black */
   --accent: 250 100% 60%;     /* Purple */
   --muted: 0 0% 80%;          /* Light gray */

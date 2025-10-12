@@ -23,7 +23,7 @@ export const menuItems: MenuItem[] = [
   { label: "Inbox", href: "/inbox", icon: HiInbox, badge: "3" },
   { label: "Users", href: "/users", icon: HiUserCircle },
   { label: "Sign In", href: "/signin", icon: HiArrowSmRight },
-  { label: "Sign Up", href: "/signup", icon: HiTable },
+  { label: "Settings", href: "/settings", icon: HiTable },
   {
     label: "Settings",
     icon: HiChartPie,

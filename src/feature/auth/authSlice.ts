@@ -57,7 +57,7 @@ type AuthState = {
 };
 
 const initialState: AuthState = {
-  isAuthenticated: false,
+  isAuthenticated: true,
   user: null,
   tokens: null,
   loading: false,
@@ -317,6 +317,7 @@ const authSlice = createSlice({
       state.loading = false;
       state.isAuthenticated = true;
       state.user = action.payload.user;
+      // state.user = { _id: "1", firstname: "John", lastname: "Doe", username: "johndoe", email: "johndoe@example.com" };
       state.tokens = action.payload.tokens;
       state.step = 'authenticated';
       // Save to localStorage

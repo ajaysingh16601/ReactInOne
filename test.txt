@@ -122,6 +122,7 @@ react-architecture/
     │   ├── HomePage.tsx
     │   ├── LoginPage.tsx
     │   ├── RegisterPage.tsx
+    │   ├── SettingsPage.tsx
     ├── providers/
     │       └── AuthProvider.tsx
     │       └── ThemeProvider.tsx

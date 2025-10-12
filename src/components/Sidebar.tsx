@@ -7,9 +7,10 @@ const LazyFooter = lazy(() => import('./Footer'));
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  isCollapsed?: boolean;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed = false }) => {
   return (
     <>
       {/* Background Overlay for Mobile */}
@@ -18,10 +19,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         onClick={onClose}
         />
       )}
-      
       <aside
-        className={`fixed top-0 left-0 z-40 w-64 h-screen pt-20 transition-all duration-500 ease-out bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-r border-white/20 dark:border-gray-700/50 shadow-2xl ${
+        className={`fixed top-0 left-0 z-40 h-screen pt-20 transition-all duration-500 ease-out bg-[hsl(var(--background))] dark:bg-gray-900/80 backdrop-blur-xl border-r border-white/20 dark:border-gray-700/50 shadow-2xl ${
           isOpen ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0 md:translate-x-0 md:opacity-100"
+        } ${
+          isCollapsed ? "w-20" : "w-64"
         }`}
       >
         {/* Sidebar Background Effects */}
@@ -33,7 +35,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
         {/* Navigation Items */}
         <div className="relative z-10 h-full flex flex-col">
-          <ul className="space-y-1 px-4 py-4 flex-1">
+          <ul className="space-y-1 px-3 py-4 flex-1">
             {menuItems.map((item, idx) => (
               <div
                 key={idx}
@@ -41,24 +43,26 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 style={{ transitionDelay: `${idx * 50}ms` }}
               >
                 {item.children ? (
-                  <SidebarSubmenu item={item} onCloseSidebar={onClose} />
+                  <SidebarSubmenu item={item} onCloseSidebar={onClose} isCollapsed={isCollapsed} />
                 ) : (
-                  <SidebarItem item={item} onCloseSidebar={onClose} />
+                  <SidebarItem item={item} onCloseSidebar={onClose} isCollapsed={isCollapsed} />
                 )}
               </div>
             ))}
           </ul>
 
-          {/* Footer */}
-          <div className="p-4 border-t border-white/20 dark:border-gray-700/30">
-            <Suspense fallback={
-              <div className="flex items-center justify-center p-4">
-                <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
-              </div>
-            }>
-              <LazyFooter />
-            </Suspense>
-          </div>
+          {/* Footer - Only show when not collapsed */}
+          {!isCollapsed && (
+            <div className="p-4 border-t border-white/20 dark:border-gray-700/30">
+              <Suspense fallback={
+                <div className="flex items-center justify-center p-4">
+                  <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              }>
+                <LazyFooter />
+              </Suspense>
+            </div>
+          )}
         </div>
       </aside>
     </>

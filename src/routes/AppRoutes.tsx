@@ -6,6 +6,7 @@ import Dashboard from "../pages/Dashboard";
 import AboutPage from "../pages/AboutPage";
 import ProtectedLayout from "../components/ProtectedLayout";
 import { useAppSelector } from "../hooks";
+import SettingsPage from "../pages/SettingsPage";
 
 const AppRoutes = () => {
     const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
@@ -21,6 +22,7 @@ const AppRoutes = () => {
             <Route element={<ProtectedLayout />}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/about" element={<AboutPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
             </Route>
 
