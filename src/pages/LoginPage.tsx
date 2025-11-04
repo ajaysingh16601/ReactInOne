@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAppDispatch, useAppSelector } from '../hooks';
-import { clearMessages, loginUser, resetToLogin, verifyOtp } from '../feature/auth/authSlice';
+import { clearMessages, loginUser, resetToLogin, verifyOtp, googleLoginSuccess, googleLoginError, googleLoginLoading } from '../feature/auth/authSlice';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { HiUser } from 'react-icons/hi';
 import { CiLock } from 'react-icons/ci';
 import { MdOutlinePassword } from 'react-icons/md';
 import { FcGoogle } from 'react-icons/fc';
+import { config } from '../config/config';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -19,6 +20,10 @@ const LoginPage: React.FC = () => {
   const { loading, error, successMessage, step, secret } = useAppSelector((state) => state.auth);
   const [localSuccessMessage, setLocalSuccessMessage] = useState<string | null>(successMessage);
   const [localError, setLocalError] = useState<string | null>(error);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const popupRef = useRef<Window | null>(null);
+  const messageListenerRef = useRef<((event: MessageEvent) => void) | null>(null);
+  const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setAnimate(true), 100);
@@ -77,32 +82,132 @@ const LoginPage: React.FC = () => {
   };
 
   const handleGoogleLogin = () => {
-    const googleAuthUrl = "http://localhost:5000/api/v1/auth/google";
-    const width = 600, height = 700;
+    // Prevent multiple popups
+    if (googleLoading || popupRef.current) {
+      return;
+    }
+
+    // Set loading state
+    setGoogleLoading(true);
+    dispatch(googleLoginLoading());
+    dispatch(clearMessages());
+
+    // Construct Google OAuth URL
+    const googleAuthUrl = `${config.API_URL}/auth/google`;
+    const width = 500;
+    const height = 600;
     const left = window.screenX + (window.outerWidth - width) / 2;
     const top = window.screenY + (window.outerHeight - height) / 2;
 
+    // Open popup
     const popup = window.open(
       googleAuthUrl,
       'Google Login',
-      `width=${width},height=${height},left=${left},top=${top}`
+      `width=${width},height=${height},left=${left},top=${top},toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes`
     );
 
-    // Listen for message from popup
-    window.addEventListener('message', (event) => {
-      if (event.origin !== "http://localhost:5173") return; // adjust if different
-      if (event.data.type === 'google-login-success') {
-        const { user, tokens } = event.data.payload;
-        // Store tokens and user
-        localStorage.setItem('accessToken', tokens.accessToken);
-        localStorage.setItem('refreshToken', tokens.refreshToken);
-        localStorage.setItem('user', JSON.stringify(user));
+    if (!popup) {
+      setGoogleLoading(false);
+      dispatch(googleLoginError('Popup blocked. Please allow popups for this site and try again.'));
+      return;
+    }
 
-        navigate('/dashboard');
-        popup?.close();
+    popupRef.current = popup;
+
+    // Cleanup function
+    const cleanup = () => {
+      if (messageListenerRef.current) {
+        window.removeEventListener('message', messageListenerRef.current);
+        messageListenerRef.current = null;
       }
-    });
+      if (popupRef.current) {
+        popupRef.current = null;
+      }
+      setGoogleLoading(false);
+    };
+
+    // Check if popup is closed manually
+    checkIntervalRef.current = setInterval(() => {
+      if (popup.closed) {
+        if (checkIntervalRef.current) {
+          clearInterval(checkIntervalRef.current);
+          checkIntervalRef.current = null;
+        }
+        // User closed popup without completing login
+        dispatch(googleLoginError('Google login was cancelled.'));
+        cleanup();
+      }
+    }, 500);
+
+    // Message listener for postMessage from backend
+    const handleMessage = (event: MessageEvent) => {
+      // Validate origin - should be backend URL
+      if (event.origin !== config.BACKEND_BASE_URL) {
+        console.warn('Ignored message from unauthorized origin:', event.origin);
+        return;
+      }
+
+      // Handle success
+      if (event.data.type === 'google-login-success') {
+        if (checkIntervalRef.current) {
+          clearInterval(checkIntervalRef.current);
+          checkIntervalRef.current = null;
+        }
+        const { user, tokens } = event.data.payload;
+
+        if (!user || !tokens || !tokens.accessToken || !tokens.refreshToken) {
+          dispatch(googleLoginError('Invalid response from Google login. Please try again.'));
+          cleanup();
+          return;
+        }
+
+        // Update Redux state
+        dispatch(googleLoginSuccess({ user, tokens }));
+
+        // Navigate to dashboard
+        navigate('/dashboard');
+
+        // Close popup
+        popup.close();
+        cleanup();
+      }
+
+      // Handle error
+      if (event.data.type === 'google-login-error') {
+        if (checkIntervalRef.current) {
+          clearInterval(checkIntervalRef.current);
+          checkIntervalRef.current = null;
+        }
+        const errorMessage = event.data.payload?.message || 'Google login failed. Please try again.';
+        dispatch(googleLoginError(errorMessage));
+        popup.close();
+        cleanup();
+      }
+    };
+
+    // Add event listener
+    window.addEventListener('message', handleMessage);
+    messageListenerRef.current = handleMessage;
   };
+
+  // Cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      if (messageListenerRef.current) {
+        window.removeEventListener('message', messageListenerRef.current);
+        messageListenerRef.current = null;
+      }
+      if (checkIntervalRef.current) {
+        clearInterval(checkIntervalRef.current);
+        checkIntervalRef.current = null;
+      }
+      if (popupRef.current && !popupRef.current.closed) {
+        popupRef.current.close();
+        popupRef.current = null;
+      }
+      setGoogleLoading(false);
+    };
+  }, []);
 
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 overflow-hidden px-4">
@@ -270,6 +375,45 @@ const LoginPage: React.FC = () => {
                 )}
               </button>
             </form>
+          )}
+
+          {/* Google Login Button */}
+          {step === 'login' && (
+            <div className={`mt-6 transition-all duration-500 delay-400 ${
+              animate ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+            }`}>
+              <div className="relative mb-4">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-4 bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400">
+                    Or continue with
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleGoogleLogin}
+                disabled={loading || googleLoading}
+                className={`w-full py-3 px-4 rounded-2xl font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transform transition-all duration-300 flex items-center justify-center gap-3 ${
+                  googleLoading || loading ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 hover:shadow-lg'
+                }`}
+              >
+                {googleLoading ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                    <span>Connecting to Google...</span>
+                  </>
+                ) : (
+                  <>
+                    <FcGoogle className="text-2xl" />
+                    <span>Sign in with Google</span>
+                  </>
+                )}
+              </button>
+            </div>
           )}
 
           {/* Additional Links */}

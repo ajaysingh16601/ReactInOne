@@ -17,6 +17,8 @@ type User = {
   lastname: string;
   username: string;
   email: string;
+  provider?: string;
+  googleId?: string;
   emailVerified?: boolean;
   phoneVerified?: boolean;
   twoFactorEnabled?: boolean;
@@ -244,6 +246,25 @@ const authSlice = createSlice({
     resetToLogin: (state) => {
       state.step = "login";
       state.secret = null;
+    },
+    googleLoginSuccess: (state, action) => {
+      state.isAuthenticated = true;
+      state.user = action.payload.user;
+      state.tokens = action.payload.tokens;
+      state.step = "authenticated";
+      state.loading = false;
+      state.error = null;
+      state.successMessage = "Successfully logged in with Google";
+      // Save to localStorage
+      saveToLocalStorage(action.payload.user, action.payload.tokens);
+    },
+    googleLoginError: (state, action) => {
+      state.loading = false;
+      state.error = action.payload || "Google login failed. Please try again.";
+    },
+    googleLoginLoading: (state) => {
+      state.loading = true;
+      state.error = null;
     }
   },
   extraReducers: (builder) => {
@@ -384,5 +405,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout, clearMessages, restoreAuth, hydrate, resetToLogin } = authSlice.actions;
+export const { logout, clearMessages, restoreAuth, hydrate, resetToLogin, googleLoginSuccess, googleLoginError, googleLoginLoading } = authSlice.actions;
 export default authSlice.reducer;

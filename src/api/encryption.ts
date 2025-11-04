@@ -14,7 +14,12 @@ function getEncryptionKeyHashed(): string {
   return CryptoJS.SHA256(getEncryptionKey()).toString(CryptoJS.enc.Hex);
 }
 
-export const encrypt = (data: any): string => {
+export const encrypt = (data: unknown): string => {
+  // Validate input
+  if (data === null || data === undefined) {
+    throw new Error('Cannot encrypt null or undefined data');
+  }
+  
   const text = JSON.stringify(data); // Serialize the object to a string
   const iv = CryptoJS.lib.WordArray.random(IV_LENGTH);
   const cipherText = CryptoJS.AES.encrypt(text, CryptoJS.enc.Hex.parse(getEncryptionKeyHashed()), {
@@ -24,18 +29,48 @@ export const encrypt = (data: any): string => {
 };
 
 // Decrypt function
-export const decrypt = (text: string): any => { // Changed return type to any
-  const [ivHex, cipherText] = text.split(':');
-  const iv = CryptoJS.enc.Hex.parse(ivHex);
-  const decryptedBytes = CryptoJS.AES.decrypt(cipherText, CryptoJS.enc.Hex.parse(getEncryptionKeyHashed()), {
-    iv,
-  });
-  const decryptedText = decryptedBytes.toString(CryptoJS.enc.Utf8);
+export const decrypt = (text: string): unknown => {
+  // Validate input
+  if (!text || typeof text !== 'string') {
+    console.warn('Decrypt called with invalid input:', text);
+    return text; // Return as-is if not a valid string
+  }
+
+  // Check if text contains colon (encrypted format: ivHex:cipherText)
+  if (!text.includes(':')) {
+    console.warn('Decrypt called with non-encrypted data, returning as-is');
+    return text; // Return as-is if not in encrypted format
+  }
+
   try {
-    return JSON.parse(decryptedText); // Parse the string back to an object
-  } catch (e) {
-    // Handle potential JSON parsing errors
-    console.error("Error parsing decrypted JSON:", e);
-    return decryptedText; // Or handle the error as needed
+    const [ivHex, cipherText] = text.split(':');
+    
+    // Validate split result
+    if (!ivHex || !cipherText) {
+      console.warn('Invalid encrypted format, missing IV or ciphertext');
+      return text; // Return as-is if format is invalid
+    }
+
+    const iv = CryptoJS.enc.Hex.parse(ivHex);
+    const decryptedBytes = CryptoJS.AES.decrypt(cipherText, CryptoJS.enc.Hex.parse(getEncryptionKeyHashed()), {
+      iv,
+    });
+    const decryptedText = decryptedBytes.toString(CryptoJS.enc.Utf8);
+    
+    if (!decryptedText) {
+      console.warn('Decryption resulted in empty text, returning original');
+      return text;
+    }
+
+    try {
+      return JSON.parse(decryptedText); // Parse the string back to an object
+    } catch (e) {
+      // Handle potential JSON parsing errors
+      console.error("Error parsing decrypted JSON:", e);
+      return decryptedText; // Or handle the error as needed
+    }
+  } catch (error) {
+    console.error('Decryption error:', error);
+    return text; // Return original text if decryption fails
   }
 };
