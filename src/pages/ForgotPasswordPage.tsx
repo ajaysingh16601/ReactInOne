@@ -3,11 +3,12 @@ import { useAppDispatch, useAppSelector } from '../hooks';
 import { requestForgotOtp, verifyForgotOtp, resetPassword, clearMessages, logout } from '../feature/auth/authSlice';
 import { HiOutlineMail } from 'react-icons/hi';
 import { MdOutlinePassword } from 'react-icons/md';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 const ForgotPasswordPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const { loading, error, successMessage, secret, resetToken } = useAppSelector((state) => state.auth);
 
   const [animate, setAnimate] = useState(false);
@@ -17,14 +18,43 @@ const ForgotPasswordPage: React.FC = () => {
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [localError, setLocalError] = useState<string | null>(error);
+  const [localSuccessMessage, setLocalSuccessMessage] = useState<string | null>(successMessage);
 
   useEffect(() => {
     const timer = setTimeout(() => setAnimate(true), 100);
-    return () => {
-      clearTimeout(timer);
-      dispatch(clearMessages());
-    };
-  }, [dispatch]);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (error) {
+      setLocalError(error);
+      const timer = setTimeout(() => {
+        setLocalError(null);
+        dispatch(clearMessages());
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [error, dispatch]);
+
+  useEffect(() => {
+    if (successMessage) {
+      setLocalSuccessMessage(successMessage);
+      const timer = setTimeout(() => {
+        setLocalSuccessMessage(null);
+        dispatch(clearMessages());
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage, dispatch]);
+
+  useEffect(() => {
+    // Clear messages and reset step when the route changes
+    dispatch(clearMessages());
+    setLocalError(null);
+    setLocalSuccessMessage(null);
+    setStep('email');
+  }, [location, dispatch]);
 
   const handleRequestOtp = (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,23 +156,23 @@ const ForgotPasswordPage: React.FC = () => {
           </div>
 
           {/* Messages */}
-          {error && (
+          {localError && (
             <div className={`mb-6 p-4 rounded-2xl bg-red-100/80 dark:bg-red-900/30 border border-red-200 dark:border-red-800 backdrop-blur-sm transition-all duration-500 ${
               animate ? "opacity-100 scale-100" : "opacity-0 scale-95"
             }`}>
-              <p className="text-red-700 dark:text-red-300 text-center font-medium">{error}</p>
-            </div>
-          )}
-          
-          {successMessage && (
-            <div className={`mb-6 p-4 rounded-2xl bg-green-100/80 dark:bg-green-900/30 border border-green-200 dark:border-green-800 backdrop-blur-sm transition-all duration-500 ${
-              animate ? "opacity-100 scale-100" : "opacity-0 scale-95"
-            }`}>
-              <p className="text-green-700 dark:text-green-300 text-center font-medium">{successMessage}</p>
+              <p className="text-red-700 dark:text-red-300 text-center font-medium">{localError}</p>
             </div>
           )}
 
-          {/* STEP 1 → EMAIL */}
+          {localSuccessMessage && (
+            <div className={`mb-6 p-4 rounded-2xl bg-green-100/80 dark:bg-green-900/30 border border-green-200 dark:border-green-800 backdrop-blur-sm transition-all duration-500 ${
+              animate ? "opacity-100 scale-100" : "opacity-0 scale-95"
+            }`}>
+              <p className="text-green-700 dark:text-green-300 text-center font-medium">{localSuccessMessage}</p>
+            </div>
+          )}
+
+          {/* Forms */}
           {step === 'email' && (
             <form onSubmit={handleRequestOtp} className="space-y-6">
               <div className={`relative transition-all duration-500 delay-200 ${

@@ -241,6 +241,10 @@ const authSlice = createSlice({
       }
       state.hydrated = true;
     },
+    resetToLogin: (state) => {
+      state.step = "login";
+      state.secret = null;
+    }
   },
   extraReducers: (builder) => {
     // STEP 1 → Request OTP
@@ -380,5 +384,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout, clearMessages, restoreAuth, hydrate } = authSlice.actions;
+export const { logout, clearMessages, restoreAuth, hydrate, resetToLogin } = authSlice.actions;
 export default authSlice.reducer;

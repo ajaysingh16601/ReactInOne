@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../hooks';
-import { loginUser, verifyOtp } from '../feature/auth/authSlice';
-import { useNavigate, Link } from 'react-router-dom';
+import { clearMessages, loginUser, resetToLogin, verifyOtp } from '../feature/auth/authSlice';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { HiUser } from 'react-icons/hi';
 import { CiLock } from 'react-icons/ci';
 import { MdOutlinePassword } from 'react-icons/md';
-// import { FcGoogle } from 'react-icons/fc';
+import { FcGoogle } from 'react-icons/fc';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -15,12 +15,53 @@ const LoginPage: React.FC = () => {
   const [hoveredButton, setHoveredButton] = useState(false);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const { loading, error, successMessage, step, secret } = useAppSelector((state) => state.auth);
+  const [localSuccessMessage, setLocalSuccessMessage] = useState<string | null>(successMessage);
+  const [localError, setLocalError] = useState<string | null>(error);
 
   useEffect(() => {
     const timer = setTimeout(() => setAnimate(true), 100);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (error) {
+      setLocalError(error);
+      const timer = setTimeout(() => {
+        setLocalError(null);
+        dispatch(clearMessages()); // Clear the global error
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [error, dispatch]);
+
+  useEffect(() => {
+    if (successMessage) {
+      setLocalSuccessMessage(successMessage);
+      const timer = setTimeout(() => {
+        setLocalSuccessMessage(null);
+        dispatch(clearMessages()); // Clear the global success message
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage, dispatch]);
+
+  useEffect(() => {
+    // Clear messages and reset step when the route changes
+    dispatch(clearMessages());
+    setLocalError(null);
+    setLocalSuccessMessage(null);
+
+    // Reset to login step if previously on OTP step
+    if (step === 'otp') {
+      console.log('Route changed, resetting to login step');
+      dispatch(resetToLogin());
+    }
+  }, [location, dispatch]);
+
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,33 +76,33 @@ const LoginPage: React.FC = () => {
     });
   };
 
-  // const handleGoogleLogin = () => {
-  //   const googleAuthUrl = "http://localhost:5000/api/v1/auth/google";
-  //   const width = 600, height = 700;
-  //   const left = window.screenX + (window.outerWidth - width) / 2;
-  //   const top = window.screenY + (window.outerHeight - height) / 2;
+  const handleGoogleLogin = () => {
+    const googleAuthUrl = "http://localhost:5000/api/v1/auth/google";
+    const width = 600, height = 700;
+    const left = window.screenX + (window.outerWidth - width) / 2;
+    const top = window.screenY + (window.outerHeight - height) / 2;
 
-  //   const popup = window.open(
-  //     googleAuthUrl,
-  //     'Google Login',
-  //     `width=${width},height=${height},left=${left},top=${top}`
-  //   );
+    const popup = window.open(
+      googleAuthUrl,
+      'Google Login',
+      `width=${width},height=${height},left=${left},top=${top}`
+    );
 
-  //   // Listen for message from popup
-  //   window.addEventListener('message', (event) => {
-  //     if (event.origin !== "http://localhost:5173") return; // adjust if different
-  //     if (event.data.type === 'google-login-success') {
-  //       const { user, tokens } = event.data.payload;
-  //       // Store tokens and user
-  //       localStorage.setItem('accessToken', tokens.accessToken);
-  //       localStorage.setItem('refreshToken', tokens.refreshToken);
-  //       localStorage.setItem('user', JSON.stringify(user));
+    // Listen for message from popup
+    window.addEventListener('message', (event) => {
+      if (event.origin !== "http://localhost:5173") return; // adjust if different
+      if (event.data.type === 'google-login-success') {
+        const { user, tokens } = event.data.payload;
+        // Store tokens and user
+        localStorage.setItem('accessToken', tokens.accessToken);
+        localStorage.setItem('refreshToken', tokens.refreshToken);
+        localStorage.setItem('user', JSON.stringify(user));
 
-  //       navigate('/dashboard');
-  //       popup?.close();
-  //     }
-  //   });
-  // };
+        navigate('/dashboard');
+        popup?.close();
+      }
+    });
+  };
 
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 overflow-hidden px-4">
@@ -121,19 +162,19 @@ const LoginPage: React.FC = () => {
           </div>
 
           {/* Messages */}
-          {error && (
+          {localError && (
             <div className={`mb-6 p-4 rounded-2xl bg-red-100/80 dark:bg-red-900/30 border border-red-200 dark:border-red-800 backdrop-blur-sm transition-all duration-500 ${
               animate ? "opacity-100 scale-100" : "opacity-0 scale-95"
             }`}>
-              <p className="text-red-700 dark:text-red-300 text-center font-medium">{error}</p>
+              <p className="text-red-700 dark:text-red-300 text-center font-medium">{localError}</p>
             </div>
           )}
           
-          {successMessage && (
+          {localSuccessMessage && (
             <div className={`mb-6 p-4 rounded-2xl bg-green-100/80 dark:bg-green-900/30 border border-green-200 dark:border-green-800 backdrop-blur-sm transition-all duration-500 ${
               animate ? "opacity-100 scale-100" : "opacity-0 scale-95"
             }`}>
-              <p className="text-green-700 dark:text-green-300 text-center font-medium">{successMessage}</p>
+              <p className="text-green-700 dark:text-green-300 text-center font-medium">{localSuccessMessage}</p>
             </div>
           )}
 

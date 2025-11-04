@@ -4,8 +4,9 @@ import {
   requestRegisterOtp,
   verifyRegisterOtp,
   registerUser,
+  clearMessages,
 } from '../feature/auth/authSlice';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { HiUser, HiOutlineMail, HiOutlineUser } from 'react-icons/hi';
 import { CiLock } from 'react-icons/ci';
 import { MdOutlinePassword } from 'react-icons/md';
@@ -13,6 +14,7 @@ import { MdOutlinePassword } from 'react-icons/md';
 const RegisterPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const { loading, error, successMessage, registerStep, secret, registrationToken } =
     useAppSelector((state) => state.auth);
 
@@ -27,11 +29,42 @@ const RegisterPage: React.FC = () => {
   const [lastname, setLastname] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [localError, setLocalError] = useState<string | null>(error);
+  const [localSuccessMessage, setLocalSuccessMessage] = useState<string | null>(successMessage);
 
   useEffect(() => {
     const timer = setTimeout(() => setAnimate(true), 100);
     return () => clearTimeout(timer);
   }, []);
+  useEffect(() => {
+    if (error) {
+      setLocalError(error);
+      const timer = setTimeout(() => {
+        setLocalError(null);
+        dispatch(clearMessages());
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [error, dispatch]);
+
+  useEffect(() => {
+    if (successMessage) {
+      setLocalSuccessMessage(successMessage);
+      const timer = setTimeout(() => {
+        setLocalSuccessMessage(null);
+        dispatch(clearMessages());
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage, dispatch]);
+
+  useEffect(() => {
+    // Clear messages and reset step when the route changes
+    dispatch(clearMessages());
+    setLocalError(null);
+    setLocalSuccessMessage(null);
+  }, [location, dispatch]);
+
 
   // Step 1: Request OTP
   const handleRequestOtp = (e: React.FormEvent) => {
@@ -133,19 +166,19 @@ const RegisterPage: React.FC = () => {
           </div>
 
           {/* Messages */}
-          {error && (
+          {localError && (
             <div className={`mb-6 p-4 rounded-2xl bg-red-100/80 dark:bg-red-900/30 border border-red-200 dark:border-red-800 backdrop-blur-sm transition-all duration-500 ${
               animate ? "opacity-100 scale-100" : "opacity-0 scale-95"
             }`}>
-              <p className="text-red-700 dark:text-red-300 text-center font-medium">{error}</p>
+              <p className="text-red-700 dark:text-red-300 text-center font-medium">{localError}</p>
             </div>
           )}
-          
-          {successMessage && (
+
+          {localSuccessMessage && (
             <div className={`mb-6 p-4 rounded-2xl bg-green-100/80 dark:bg-green-900/30 border border-green-200 dark:border-green-800 backdrop-blur-sm transition-all duration-500 ${
               animate ? "opacity-100 scale-100" : "opacity-0 scale-95"
             }`}>
-              <p className="text-green-700 dark:text-green-300 text-center font-medium">{successMessage}</p>
+              <p className="text-green-700 dark:text-green-300 text-center font-medium">{localSuccessMessage}</p>
             </div>
           )}
 
