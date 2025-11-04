@@ -3,7 +3,7 @@ import * as CryptoJS from 'crypto-js';
 const IV_LENGTH = 16;
 
 function getEncryptionKey(): string {
-  const key = import.meta.env.VITE_ENCRYPTION_KEY;
+  const key = import.meta.env.VITE_ENCRYPTION_KEY || 'e370d98b6da5477c9a4f222ce8df1e1033f79d85d0b62755c5233704243c6082';
   if (!key) {
     throw new Error("Encryption key is not set in the environment variables.");
   }
