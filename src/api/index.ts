@@ -3,6 +3,8 @@ import axios from "axios";
 import { config } from "../config/config";
 import { decrypt, encrypt } from "./encryption";
 
+// API configuration loaded
+
 export const api = axios.create({
   baseURL: config.API_URL,
   withCredentials: true,
@@ -14,15 +16,15 @@ export const api = axios.create({
 
 // Attach tokens automatically
 api.interceptors.request.use((req) => {
+  // Request prepared
+
   // Only encrypt if there's data to encrypt
   if (req.data !== null && req.data !== undefined) {
     try {
       const encryptedData = encrypt(req.data);
       req.data = { data: encryptedData };
     } catch (encryptError) {
-      console.error('Failed to encrypt request data:', encryptError);
-      // If encryption fails, send data as-is (might be needed for some endpoints)
-      // You can remove this fallback if all endpoints must be encrypted
+      // encryption failed - proceed without encrypted payload
     }
   }
 
@@ -34,21 +36,19 @@ api.interceptors.request.use((req) => {
 // Response interceptor
 api.interceptors.response.use(
   (response) => {
+    // Response received
+
     // Only decrypt if response has encrypted data format
     if (response.data?.data && typeof response.data.data === 'string') {
       // Check if it looks like encrypted data (contains colon separator)
       if (response.data.data.includes(':')) {
-        try {
-          const decryptedData = decrypt(response.data.data);
-          response.data = decryptedData;
-        } catch (decryptError) {
-          console.error('Failed to decrypt response:', decryptError);
-          // If decryption fails, return original response structure
-          // This handles cases where backend sends non-encrypted data in { data: ... } format
-        }
+          try {
+            const decryptedData = decrypt(response.data.data);
+            response.data = decryptedData;
+          } catch (decryptError) {
+            console.error("Failed to decrypt response data", decryptError);
+          }
       } else {
-        // If data.data exists but is not encrypted format, use it directly
-        // This handles backend responses like { data: { message: "...", ... } }
         response.data = response.data.data;
       }
     }
@@ -56,6 +56,8 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
+    // API error
+
     // Handle error responses
     if (error.response?.data) {
       if (error.response.data?.data && typeof error.response.data.data === 'string') {
@@ -65,8 +67,8 @@ api.interceptors.response.use(
             const decryptedErrorData = decrypt(error.response.data.data);
             error.response.data = decryptedErrorData;
           } catch (decryptError) {
-            console.error('Failed to decrypt error response:', decryptError);
-            // If decryption fails, use nested data or original
+            console.error("Failed to decrypt error response data", decryptError);
+            // failed to decrypt error response - leave as-is
             error.response.data = error.response.data.data || error.response.data;
           }
         } else {

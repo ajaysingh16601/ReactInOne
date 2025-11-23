@@ -17,4 +17,5 @@ export const config = {
     API_URL,
     FRONTEND_URL,
     BACKEND_BASE_URL: getBackendBaseUrl(API_URL),
+    SOCKET_URL: import.meta.env.VITE_SOCKET_URL || getBackendBaseUrl(API_URL),
 };

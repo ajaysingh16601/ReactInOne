@@ -4,6 +4,7 @@ import RegisterPage from "../pages/RegisterPage";
 import ForgotPasswordPage from "../pages/ForgotPasswordPage";
 import Dashboard from "../pages/Dashboard";
 import AboutPage from "../pages/AboutPage";
+import { ChatPage } from "../pages/ChatPage";
 import ProtectedLayout from "../components/ProtectedLayout";
 import { useAppSelector } from "../hooks";
 import SettingsPage from "../pages/SettingsPage";
@@ -22,6 +23,7 @@ const AppRoutes = () => {
             <Route element={<ProtectedLayout />}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/about" element={<AboutPage />} />
+                <Route path="/chat" element={<ChatPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
             </Route>
