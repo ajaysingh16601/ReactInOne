@@ -1,12 +1,11 @@
 import {
   HiChartPie,
   HiViewBoards,
-  HiInbox,
   HiUserCircle,
   HiShoppingBag,
-  HiArrowSmRight,
   HiTable,
 } from "react-icons/hi";
+import { FiMessageCircle } from "react-icons/fi";
 
 export interface MenuItem {
   label: string;
@@ -19,10 +18,9 @@ export interface MenuItem {
 export const menuItems: MenuItem[] = [
   { label: "Dashboard", href: "/", icon: HiChartPie },
   { label: "About", href: "/about", icon: HiShoppingBag },
+  { label: "Inbox", href: "/chat", icon: FiMessageCircle },
   { label: "Kanban", href: "/kanban", icon: HiViewBoards, badge: "Pro" },
-  { label: "Inbox", href: "/inbox", icon: HiInbox, badge: "3" },
   { label: "Users", href: "/users", icon: HiUserCircle },
-  { label: "Sign In", href: "/signin", icon: HiArrowSmRight },
   { label: "Settings", href: "/settings", icon: HiTable },
   {
     label: "Settings",
