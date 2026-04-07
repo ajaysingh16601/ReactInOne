@@ -1,10 +1,19 @@
 // Base types
 export interface User {
   _id: string;
-  name: string;
+  name?: string;
+  firstname?: string;
+  lastname?: string;
   email: string;
   avatar?: string;
+  profileImageUrl?: string;
+  profileImageS3Key?: string;
+  username?: string;
+  bio?: string;
+  role?: string;
   isOnline?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // Chat types

@@ -50,15 +50,78 @@ export const useSocket = () => {
       dispatch(setConnectionStatus(false));
     });
 
-    // New message
-    socketService.onMessage((message: Message) => {
-      dispatch(addMessage(message));
-    });
+    // New message - accept multiple event names and normalize payload
+    const handleIncomingMessage = (raw: any) => {
+      // Normalize sender - handle both object and string formats
+      let sender: any = raw.sender || raw.from || raw.user || raw.userId;
+      if (sender && typeof sender === 'object') {
+        sender = sender;
+      } else if (sender && typeof sender === 'string') {
+        sender = sender;
+      }
 
-    // Typing indicators
-    socketService.onTyping((data: TypingIndicator) => {
-      dispatch(setTypingIndicator(data));
-    });
+      const message: Message = {
+        ...raw,
+        _id: raw._id || raw.id || raw.messageId,
+        conversation: String(raw.conversation || raw.conversationId || raw.roomId),
+        sender: sender,
+        body: raw.body || raw.text || raw.message || '',
+        attachments: raw.attachments || raw.files || [],
+        readBy: Array.isArray(raw.readBy) ? raw.readBy : (raw.readers || []),
+        deliveredTo: Array.isArray(raw.deliveredTo) ? raw.deliveredTo : (raw.delivered || []),
+        createdAt: raw.createdAt || raw.created_at || new Date().toISOString(),
+        updatedAt: raw.updatedAt || raw.updated_at || (raw.createdAt || new Date().toISOString()),
+      } as Message;
+
+      if (!message.conversation || !message._id) {
+        console.warn('Invalid message received:', raw);
+        return; // cannot place message without conversation or _id
+      }
+      
+      // Always dispatch - don't filter by sender
+      // The addMessage reducer will handle deduplication
+      dispatch(addMessage(message));
+    };
+
+    socketService.on('message', handleIncomingMessage);
+    socketService.on('new_message', handleIncomingMessage);
+    socketService.on('message:new', handleIncomingMessage);
+
+    // Typing indicators - accept multiple event names and normalize payloads
+    const typingTimeouts: Record<string, number> = {};
+
+    const handleTyping = (data: any) => {
+      const normalized = {
+        conversationId: data.conversationId || data.conversation || data.roomId,
+        userId: data.userId || data.user || data.from,
+        isTyping: typeof data.isTyping === 'boolean' ? data.isTyping : (data.typing === true),
+      } as TypingIndicator;
+
+      if (!normalized.conversationId || !normalized.userId) return;
+
+      // Update typing state
+      dispatch(setTypingIndicator(normalized));
+
+      const key = `${normalized.conversationId}:${normalized.userId}`;
+      // Clear any existing timeout
+      if (typingTimeouts[key]) {
+        clearTimeout(typingTimeouts[key]);
+        delete typingTimeouts[key];
+      }
+
+      // If server says user stopped typing, nothing more to do
+      if (!normalized.isTyping) return;
+
+      // Otherwise, set a timeout to clear the typing indicator after 3s
+      typingTimeouts[key] = window.setTimeout(() => {
+        dispatch(setTypingIndicator({ conversationId: normalized.conversationId, userId: normalized.userId, isTyping: false }));
+        delete typingTimeouts[key];
+      }, 3000) as unknown as number;
+    };
+
+    socketService.on('typing', handleTyping);
+    socketService.on('user_typing', handleTyping);
+    socketService.on('typing_indicator', handleTyping);
 
     // Read receipts
     socketService.onRead((data: ReadReceipt) => {
@@ -102,7 +165,11 @@ export const useSocket = () => {
         socketService.off('connect');
         socketService.off('disconnect');
         socketService.off('message');
+        socketService.off('new_message');
+        socketService.off('message:new');
         socketService.off('typing');
+        socketService.off('user_typing');
+        socketService.off('typing_indicator');
         socketService.off('read');
         socketService.off('message_delivered');
         socketService.off('user_online');

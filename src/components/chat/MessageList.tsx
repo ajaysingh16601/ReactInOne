@@ -2,13 +2,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { Message } from '../../types';
 import { useChat } from '../../hooks';
-import { FiCheck, FiCheckCircle, FiDownload } from 'react-icons/fi';
+import { FiCheck, FiCheckCircle, FiDownload, FiX, FiExternalLink, FiImage } from 'react-icons/fi';
 
 interface MessageListProps {
   messages: Message[];
   conversationId: string;
   currentUserId: string;
-  typingUsers: string[];
+  // display names already resolved by parent (ChatPage)
+  typingDisplayNames: string[];
+  // whether to show user names in typing indicator (true for group chats)
+  showTypingNames?: boolean;
 }
 
 interface MessageBubbleProps {
@@ -73,22 +76,92 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     );
   };
 
+  const handleAttachmentClick = (attachment: { url: string; name: string; size: number }, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent message details popup from opening
+    
+    // Check if URL is base64 data URL
+    if (attachment.url.startsWith('data:')) {
+      // For base64 data URLs, open in new tab
+      const newWindow = window.open();
+      if (newWindow) {
+        newWindow.document.write(`
+          <html>
+            <head><title>${attachment.name}</title></head>
+            <body style="margin:0;padding:20px;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#1a1a1a;">
+              ${attachment.url.includes('image/') 
+                ? `<img src="${attachment.url}" alt="${attachment.name}" style="max-width:100%;max-height:100vh;object-fit:contain;" />`
+                : attachment.url.includes('video/')
+                ? `<video src="${attachment.url}" controls style="max-width:100%;max-height:100vh;" />`
+                : attachment.url.includes('audio/')
+                ? `<audio src="${attachment.url}" controls style="width:100%;" />`
+                : `<iframe src="${attachment.url}" style="width:100%;height:100vh;border:none;" />`
+              }
+            </body>
+          </html>
+        `);
+      }
+    } else {
+      // For regular URLs, open in new tab
+      window.open(attachment.url, '_blank');
+    }
+  };
+
+  const handleAttachmentDownload = (attachment: { url: string; name: string; size: number }, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent message details popup from opening
+    
+    // Convert base64 data URL to blob and download
+    if (attachment.url.startsWith('data:')) {
+      try {
+        const response = fetch(attachment.url);
+        response.then(res => res.blob()).then(blob => {
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = attachment.name;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        });
+      } catch (error) {
+        console.error('Error downloading file:', error);
+        // Fallback: open in new tab
+        window.open(attachment.url, '_blank');
+      }
+    } else {
+      // For regular URLs, trigger download
+      const a = document.createElement('a');
+      a.href = attachment.url;
+      a.download = attachment.name;
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  };
+
+  const isImageFile = (fileName: string, url: string): boolean => {
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp'];
+    const lowerName = fileName.toLowerCase();
+    return imageExtensions.some(ext => lowerName.endsWith(ext)) || url.startsWith('data:image/');
+  };
+
   return (
     <div className={`
-      flex ${isOwn ? 'justify-end' : 'justify-start'} mb-4 group
-      animate-fadeIn
+      flex ${isOwn ? 'justify-end' : 'justify-start'} mb-3 group
+      animate-fadeIn px-2
     `}>
       {!isOwn && showAvatar && (
-        <div className="mr-2 mt-auto">
+        <div className="mr-2 mt-auto flex-shrink-0">
           {getSenderAvatar()}
         </div>
       )}
       
       <div className={`
-        max-w-[70%] ${isOwn ? 'order-2' : 'order-1'}
+        max-w-[75%] sm:max-w-[70%] ${isOwn ? 'order-2' : 'order-1'} flex flex-col
       `}>
         {!isOwn && showAvatar && (
-          <div className="text-xs text-gray-600 dark:text-gray-400 mb-1 ml-2">
+          <div className="text-xs text-gray-600 dark:text-gray-400 mb-1 ml-1 font-medium">
             {getSenderName()}
           </div>
         )}
@@ -97,93 +170,177 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           <div
             onClick={() => setShowDetails(!showDetails)}
             className={`
-              px-4 py-2 rounded-2xl cursor-pointer transition-all duration-300
+              px-4 py-2.5 rounded-2xl cursor-pointer transition-all duration-300
               ${isOwn
-                ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white ml-auto'
-                : 'bg-white/80 dark:bg-gray-800/80 text-gray-900 dark:text-gray-100 backdrop-blur-sm border border-white/20 dark:border-gray-700/30'
+                ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
+                : 'bg-white/90 dark:bg-gray-800/90 text-gray-900 dark:text-gray-100 backdrop-blur-sm border border-white/20 dark:border-gray-700/30'
               }
-              hover:scale-[1.02] shadow-lg
+              hover:scale-[1.01] shadow-md hover:shadow-lg
               ${message.tempId ? 'opacity-70' : ''}
+              break-words
             `}
           >
-            <p className="text-sm leading-relaxed whitespace-pre-wrap">
-              {message.body}
-            </p>
+            {message.body && (
+              <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                {message.body}
+              </p>
+            )}
             
             {/* Attachments */}
             {message.attachments && message.attachments.length > 0 && (
-              <div className="mt-2 space-y-2">
-                {message.attachments.map((attachment, index) => (
-                  <div key={index} className="
-                    flex items-center space-x-2 p-2 rounded-lg
-                    bg-black/10 dark:bg-white/10
-                  ">
-                    <FiDownload className="w-4 h-4" />
-                    <span className="text-sm truncate flex-1">
-                      {attachment.name}
-                    </span>
-                    <span className="text-xs opacity-70">
-                      {(attachment.size / 1024).toFixed(1)}KB
-                    </span>
-                  </div>
-                ))}
+              <div className={`${message.body ? 'mt-2' : ''} space-y-2`}>
+                {message.attachments.map((attachment, index) => {
+                  const isImage = isImageFile(attachment.name, attachment.url);
+                  
+                  return (
+                    <div key={index} className="space-y-2">
+                      {/* Image Preview */}
+                      {isImage && attachment.url && (
+                        <div 
+                          onClick={(e) => handleAttachmentClick(attachment, e)}
+                          className="cursor-pointer rounded-lg overflow-hidden hover:opacity-90 transition-opacity"
+                        >
+                          <img 
+                            src={attachment.url} 
+                            alt={attachment.name}
+                            className="max-w-full max-h-64 object-contain rounded-lg"
+                            onError={(e) => {
+                              // Hide image if it fails to load
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      )}
+                      
+                      {/* File Info Card */}
+                      <div 
+                        onClick={(e) => handleAttachmentClick(attachment, e)}
+                        className={`
+                          flex items-center space-x-2 p-2 rounded-lg cursor-pointer
+                          transition-all duration-200 hover:scale-[1.02]
+                          ${isOwn 
+                            ? 'bg-white/20 text-white hover:bg-white/30' 
+                            : 'bg-black/10 dark:bg-white/10 text-gray-900 dark:text-gray-100 hover:bg-black/20 dark:hover:bg-white/20'
+                          }
+                        `}
+                      >
+                        {isImage ? (
+                          <FiImage className="w-4 h-4 flex-shrink-0" />
+                        ) : (
+                          <FiDownload className="w-4 h-4 flex-shrink-0" />
+                        )}
+                        <span className="text-sm truncate flex-1 min-w-0" title={attachment.name}>
+                          {attachment.name}
+                        </span>
+                        <span className={`text-xs flex-shrink-0 ${isOwn ? 'text-white/80' : 'opacity-70'}`}>
+                          {(attachment.size / 1024).toFixed(1)}KB
+                        </span>
+                        <button
+                          onClick={(e) => handleAttachmentDownload(attachment, e)}
+                          className={`
+                            p-1 rounded hover:bg-white/20 transition-colors
+                            ${isOwn ? 'text-white' : 'text-gray-600 dark:text-gray-400'}
+                          `}
+                          title="Download"
+                        >
+                          <FiDownload className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={(e) => handleAttachmentClick(attachment, e)}
+                          className={`
+                            p-1 rounded hover:bg-white/20 transition-colors
+                            ${isOwn ? 'text-white' : 'text-gray-600 dark:text-gray-400'}
+                          `}
+                          title="Open"
+                        >
+                          <FiExternalLink className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
           
-          {/* Message details */}
+          {/* Message details popup - improved positioning */}
           {showDetails && (
-            <div className={`
-              absolute top-full mt-2 p-3 rounded-lg z-10
-              bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl
-              border border-white/20 dark:border-gray-700/30
-              shadow-xl min-w-[200px]
-              ${isOwn ? 'right-0' : 'left-0'}
-              animate-fadeIn
-            `}>
-              <div className="text-xs space-y-1">
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Sent:</span>
-                  <span className="font-medium">{formatTime(message.createdAt)}</span>
-                </div>
-                
-                {isOwn && (
-                  <>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Delivered:</span>
-                      <span className="font-medium">
-                        {(message.deliveredTo || []).length > 0 ? '✓' : 'Pending'}
-                      </span>
+            <>
+              {/* Backdrop to close on click outside */}
+              <div 
+                className="fixed inset-0 z-40"
+                onClick={() => setShowDetails(false)}
+              />
+              <div className={`
+                absolute ${isOwn ? 'right-0' : 'left-0'} top-full mt-2 p-3 rounded-xl z-50
+                bg-white dark:bg-gray-800 backdrop-blur-xl
+                border border-gray-200 dark:border-gray-700
+                shadow-2xl min-w-[220px] max-w-[280px]
+                animate-fadeIn
+              `}>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center pb-2 border-b border-gray-200 dark:border-gray-700">
+                    <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Message Info</span>
+                    <button
+                      onClick={() => setShowDetails(false)}
+                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                    >
+                      <FiX className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="text-xs space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600 dark:text-gray-400">Sent:</span>
+                      <span className="font-medium text-gray-900 dark:text-gray-100">{formatTime(message.createdAt)}</span>
                     </div>
                     
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Read:</span>
-                      <span className="font-medium">
-                        {(message.readBy || []).length > 0 ? '✓' : 'Unread'}
-                      </span>
-                    </div>
-                  </>
-                )}
+                    {isOwn && (
+                      <>
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600 dark:text-gray-400">Delivered:</span>
+                          <span className="font-medium text-gray-900 dark:text-gray-100">
+                            {(message.deliveredTo || []).length > 0 ? (
+                              <span className="text-green-500">✓ Yes</span>
+                            ) : (
+                              <span className="text-gray-400">Pending</span>
+                            )}
+                          </span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600 dark:text-gray-400">Read:</span>
+                          <span className="font-medium text-gray-900 dark:text-gray-100">
+                            {(message.readBy || []).length > 0 ? (
+                              <span className="text-blue-500">✓ Read</span>
+                            ) : (
+                              <span className="text-gray-400">Unread</span>
+                            )}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
+            </>
           )}
         </div>
         
         {/* Time and status */}
         <div className={`
           flex items-center space-x-1 mt-1 text-xs text-gray-500 dark:text-gray-400
-          ${isOwn ? 'justify-end' : 'justify-start'}
+          ${isOwn ? 'justify-end mr-1' : 'justify-start ml-1'}
         `}>
           <span>{formatTime(message.createdAt)}</span>
           {getDeliveryStatus()}
           {message.tempId && (
-            <span className="text-orange-500">Sending...</span>
+            <span className="text-orange-500 ml-1">Sending...</span>
           )}
         </div>
       </div>
       
       {isOwn && showAvatar && (
-        <div className="ml-2 mt-auto">
+        <div className="ml-2 mt-auto flex-shrink-0">
           {getSenderAvatar()}
         </div>
       )}
@@ -191,22 +348,23 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   );
 };
 
-const TypingIndicator: React.FC<{ typingUsers: string[] }> = ({ typingUsers }) => {
-  if (typingUsers.length === 0) return null;
-  
+const TypingIndicator: React.FC<{ typingDisplayNames: string[]; showNames?: boolean }> = ({ typingDisplayNames, showNames = true }) => {
+  if (typingDisplayNames.length === 0) return null;
+
+  const text = (() => {
+    if (!showNames) return 'typing...';
+    if (typingDisplayNames.length === 1) return `${typingDisplayNames[0]} is typing...`;
+    return `${typingDisplayNames.length} people are typing...`;
+  })();
+
   return (
-    <div className="flex items-center space-x-2 p-4 animate-fadeIn">
-      <div className="flex space-x-1">
+    <div className="flex items-center space-x-2 px-2 py-2 animate-fadeIn">
+      <div className="flex space-x-1 ml-2">
         <div className="w-2 h-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full animate-bounce" />
         <div className="w-2 h-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
         <div className="w-2 h-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
       </div>
-      <span className="text-sm text-gray-600 dark:text-gray-400">
-        {typingUsers.length === 1 
-          ? `${typingUsers[0]} is typing...`
-          : `${typingUsers.length} people are typing...`
-        }
-      </span>
+      <span className="text-sm text-gray-600 dark:text-gray-400 italic">{text}</span>
     </div>
   );
 };
@@ -215,7 +373,8 @@ export const MessageList: React.FC<MessageListProps> = ({
   messages,
   conversationId,
   currentUserId,
-  typingUsers,
+  typingDisplayNames,
+  showTypingNames = true,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { markAsRead } = useChat();
@@ -226,7 +385,7 @@ export const MessageList: React.FC<MessageListProps> = ({
     } catch (error) {
       console.warn("Failed to scroll to bottom", error);
     }
-  }, [messages, typingUsers]);
+  }, [messages, typingDisplayNames]);
 
   useEffect(() => {
     if (!messages || !Array.isArray(messages)) return;
@@ -270,7 +429,7 @@ export const MessageList: React.FC<MessageListProps> = ({
 
   if (messages.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center p-8">
+      <div className="flex-1 flex items-center justify-center p-8 min-h-0">
         <div className="text-center">
           <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mx-auto mb-4">
             <span className="text-2xl">💬</span>
@@ -287,8 +446,8 @@ export const MessageList: React.FC<MessageListProps> = ({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-transparent to-white/5">
-      <div className="space-y-1">
+    <div className="flex-1 overflow-y-auto bg-gradient-to-b from-transparent to-white/5 dark:to-gray-900/5 min-h-0">
+      <div className="py-4">
         {messagesWithAvatars.map((message, index) => (
           <MessageBubble
             key={message._id || message.tempId || `msg-${index}-${message.createdAt}`}
@@ -301,9 +460,9 @@ export const MessageList: React.FC<MessageListProps> = ({
           />
         ))}
         
-        <TypingIndicator typingUsers={typingUsers} />
+        <TypingIndicator typingDisplayNames={typingDisplayNames} showNames={showTypingNames} />
         
-        <div ref={messagesEndRef} />
+        <div ref={messagesEndRef} className="h-2" />
       </div>
     </div>
   );

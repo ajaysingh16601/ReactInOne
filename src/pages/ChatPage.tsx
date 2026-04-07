@@ -247,7 +247,7 @@ const NewConversationModal: React.FC<NewConversationModalProps> = ({
 
 export const ChatPage: React.FC = () => {
   const { connectSocket, isConnected } = useSocket();
-  const { currentUser, loadCurrentUser } = useUsers();
+  const { currentUser, loadCurrentUser, getUserById } = useUsers();
   const {
     conversations,
     activeConversation,
@@ -291,6 +291,18 @@ export const ChatPage: React.FC = () => {
   const activeMessages = activeConversation ? messages[activeConversation] || [] : [];
   const typingUsers = activeConversation ? getTypingUsers(activeConversation) : [];
 
+  // Resolve typing user IDs to display names when possible
+  const typingDisplayNames = typingUsers.map(id => getUserById(id)?.name || 'Someone');
+
+  // Auto-select and join first conversation when conversations load
+  useEffect(() => {
+    if (!activeConversation && conversations.length > 0) {
+      const firstId = conversations[0]._id;
+      // joinConversation will set activeConversation and fetch messages
+      joinConversation(firstId);
+    }
+  }, [conversations, activeConversation, joinConversation]);
+
   const handleConversationSelect = (conversationId: string) => {
     joinConversation(conversationId);
     setIsMobileMenuOpen(false);
@@ -316,6 +328,7 @@ export const ChatPage: React.FC = () => {
     if (activeConversationData.title) return activeConversationData.title;
     
     if (activeConversationData.type === 'direct') {
+      console.log('opened chat user name', );
       return 'Direct Chat';
     }
     
@@ -329,6 +342,7 @@ export const ChatPage: React.FC = () => {
         w-80 border-r border-white/20 dark:border-gray-700/30
         ${isMobileMenuOpen ? 'block' : 'hidden'} lg:block
         lg:relative absolute inset-y-0 left-0 z-30
+        flex flex-col h-full
       `}>
         <ConversationList
           conversations={conversations}
@@ -348,32 +362,35 @@ export const ChatPage: React.FC = () => {
       )}
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Chat Header */}
-        <div className="h-16 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-white/20 dark:border-gray-700/30 flex items-center justify-between px-4">
-          <div className="flex items-center space-x-3">
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        {/* Chat Header - Fixed at top */}
+        <div className="flex-shrink-0 h-16 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-white/20 dark:border-gray-700/30 flex items-center justify-between px-4 z-20 sticky top-0">
+          <div className="flex items-center space-x-3 flex-1 min-w-0">
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(true)}
-              className="lg:hidden p-2 hover:bg-white/30 dark:hover:bg-gray-800/30 rounded-lg transition-colors duration-300"
+              className="lg:hidden p-2 hover:bg-white/30 dark:hover:bg-gray-800/30 rounded-lg transition-colors duration-300 flex-shrink-0"
             >
               <FiUsers className="w-5 h-5" />
             </button>
 
-            <div>
-              <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">
                 {getConversationTitle()}
               </h1>
               {activeConversationData && (
-                <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
-                  <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
-                  <span>{isConnected ? 'Connected' : 'Disconnected'}</span>
+                <div className="flex items-center space-x-2 text-xs text-gray-600 dark:text-gray-400">
+                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+                  <span className="truncate">{isConnected ? 'Connected' : 'Disconnected'}</span>
                   
-                  {typingUsers.length > 0 && (
+                  {typingDisplayNames.length > 0 && (
                     <>
                       <span>•</span>
-                      <span className="text-purple-500">
-                        {typingUsers.length === 1 ? 'Someone is typing...' : 'Multiple people are typing...'}
+                      <span className="text-purple-500 truncate">
+                        {activeConversationData?.type === 'direct'
+                          ? `typing...`
+                          : (typingDisplayNames.length === 1 ? `${typingDisplayNames[0]} is typing...` : `${typingDisplayNames.length} people are typing...`)
+                        }
                       </span>
                     </>
                   )}
@@ -384,7 +401,7 @@ export const ChatPage: React.FC = () => {
 
           {/* Chat Actions */}
           {activeConversationData && (
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 flex-shrink-0 ml-2">
               <button className="p-2 hover:bg-white/30 dark:hover:bg-gray-800/30 rounded-lg transition-all duration-300 hover:scale-105">
                 <FiPhone className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               </button>
@@ -398,24 +415,29 @@ export const ChatPage: React.FC = () => {
           )}
         </div>
 
-        {/* Chat Content */}
+        {/* Chat Content - Scrollable Messages Area */}
         <div className="flex-1 flex flex-col min-h-0">
           {activeConversation ? (
             <>
+            <div className="flex-1 overflow-y-auto">
               <MessageList
                 messages={activeMessages}
                 conversationId={activeConversation}
                 currentUserId={currentUser?._id || ''}
-                typingUsers={typingUsers}
+                typingDisplayNames={typingDisplayNames}
+                showTypingNames={activeConversationData?.type !== 'direct'}
               />
+              </div>
+              <div className="flex-shrink-0">
               <MessageInput
                 conversationId={activeConversation}
                 onSendMessage={handleSendMessage}
                 disabled={!isConnected}
               />
+              </div>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center p-8">
+            <div className="flex-1 flex items-center justify-center p-8 overflow-y-auto">
               <div className="text-center">
                 <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mx-auto mb-6">
                   <span className="text-4xl">💬</span>

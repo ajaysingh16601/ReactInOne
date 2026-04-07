@@ -15,7 +15,6 @@ const Navbar: React.FC<NavbarProps> = ({ toggleSidebar, toggleSidebarCollapse, i
   const dropdownRef = useRef<HTMLDivElement>(null);
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
-  const profileImageUrl = user?.profileImageUrl;
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -109,7 +108,7 @@ const Navbar: React.FC<NavbarProps> = ({ toggleSidebar, toggleSidebarCollapse, i
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               >
                 <img
-                  src={profileImageUrl || "https://flowbite.com/docs/images/people/profile-picture-5.jpg"}
+                  src={user?.profileImageUrl || "https://flowbite.com/docs/images/people/profile-picture-5.jpg"}
                   alt={user?.firstname || "User"}
                   className="h-10 w-10 rounded-xl border-2 border-white/30 dark:border-gray-600/50 shadow-lg transition-all duration-300 group-hover:scale-110 group-hover:border-purple-400/50"
                 />
@@ -126,7 +125,7 @@ const Navbar: React.FC<NavbarProps> = ({ toggleSidebar, toggleSidebarCollapse, i
                   <div className="p-4 border-b border-white/20 dark:border-gray-700/30 bg-gradient-to-r from-purple-500/5 to-pink-500/5">
                     <div className="flex items-center gap-3">
                       <img
-                        src={profileImageUrl || "https://flowbite.com/docs/images/people/profile-picture-5.jpg"}
+                        src={user?.profileImageUrl || "https://flowbite.com/docs/images/people/profile-picture-5.jpg"}
                         alt={user ? `${user.firstname} ${user.lastname}` : "User"}
                         className="h-12 w-12 rounded-xl border-2 border-white/50 object-cover"
                       />

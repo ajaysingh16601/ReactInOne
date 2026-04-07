@@ -77,6 +77,7 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     if (!secret) return;
     dispatch(verifyOtp({ email, secret, otp })).then((res: any) => {
+      console.log('res: ====', res);
       if (res.meta.requestStatus === 'fulfilled') navigate('/dashboard');
     });
   };

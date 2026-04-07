@@ -18,8 +18,12 @@ export const api = axios.create({
 api.interceptors.request.use((req) => {
   // Request prepared
 
-  // Only encrypt if there's data to encrypt
-  if (req.data !== null && req.data !== undefined) {
+  // Skip encryption for FormData (file uploads) and when x-encrypted is false
+  const isFormData = req.data instanceof FormData;
+  const isEncryptionDisabled = req.headers['x-encrypted'] === 'false';
+  
+  // Only encrypt if there's data to encrypt AND it's not FormData AND encryption is enabled
+  if (req.data !== null && req.data !== undefined && !isFormData && !isEncryptionDisabled) {
     try {
       const encryptedData = encrypt(req.data);
       req.data = { data: encryptedData };

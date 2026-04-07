@@ -3,3 +3,4 @@ export * from './useAppDispatch';
 export * from './useSocket';
 export * from './useChat';
 export * from './useUsers';
+export * from './useProfileImage';

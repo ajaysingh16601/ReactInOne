@@ -1,4 +1,7 @@
 import React, { useEffect, useState } from "react";
+import ProfileImageUpload from "../components/ProfileImageUpload";
+import ProfileEditForm from "../components/ProfileEditForm";
+import { useAppSelector } from "../hooks";
 
 interface MenuItem {
     id: string;
@@ -8,7 +11,7 @@ interface MenuItem {
     gradient: string;
 }
 
-interface ToggleSetting {
+interface NotificationToggle {
     id: string;
     label: string;
     checked: boolean;
@@ -25,6 +28,9 @@ const SettingsPage: React.FC = () => {
     const [animate, setAnimate] = useState(false);
     const [hoveredCard, setHoveredCard] = useState<number | null>(null);
     const [hoveredMenu, setHoveredMenu] = useState<number | null>(null);
+    const [isEditingProfile, setIsEditingProfile] = useState(false);
+    const [activeSection, setActiveSection] = useState('profile');
+    const { user } = useAppSelector((state) => state.auth);
 
     const menuItems: MenuItem[] = [
         { id: 'profile', label: 'Profile', icon: '👤', gradient: "from-green-500 to-blue-500", active: true },
@@ -35,37 +41,10 @@ const SettingsPage: React.FC = () => {
         { id: 'storage', label: 'Storage', icon: '💾', gradient: "from-indigo-500 to-purple-500" },
     ];
 
-    const [profileData, setProfileData] = useState({
-        name: 'Alex Johnson',
-        email: 'alex.johnson@example.com',
-        bio: 'UI/UX Designer & Frontend Developer',
-    });
-
-    const [privacySettings, setPrivacySettings] = useState<ToggleSetting[]>([
-        { 
-            id: 'private-account', 
-            label: 'Private Account', 
-            checked: true,
-            description: 'Make your account visible to approved followers only',
-            gradient: "from-purple-500 to-pink-500"
-        },
-        { 
-            id: 'online-status', 
-            label: 'Show Online Status', 
-            checked: true,
-            description: 'Let others see when you are active',
-            gradient: "from-blue-500 to-teal-500"
-        },
-        { 
-            id: 'tagging', 
-            label: 'Allow Tagging', 
-            checked: false,
-            description: 'Allow others to tag you in posts and photos',
-            gradient: "from-green-500 to-blue-500"
-        },
-    ]);
-
-    const [notificationSettings, setNotificationSettings] = useState({
+    const [notificationSettings, setNotificationSettings] = useState<{
+        toggles: NotificationToggle[];
+        frequency: string;
+    }>({
         toggles: [
             { 
                 id: 'push', 
@@ -92,31 +71,10 @@ const SettingsPage: React.FC = () => {
         frequency: 'daily',
     });
 
-    const [appearanceSettings, setAppearanceSettings] = useState({
-        theme: 'system',
-        accent: 'purple-pink',
-        compactMode: false,
-        animations: true,
-    });
-
-    const [activeSection, setActiveSection] = useState('profile');
-
     const frequencyOptions: SelectOption[] = [
         { value: 'realtime', label: 'Real-time' },
         { value: 'daily', label: 'Daily Digest' },
         { value: 'weekly', label: 'Weekly Summary' },
-    ];
-
-    const themeOptions: SelectOption[] = [
-        { value: 'system', label: 'System Default' },
-        { value: 'light', label: 'Light Mode' },
-        { value: 'dark', label: 'Dark Mode' },
-    ];
-
-    const accentOptions: SelectOption[] = [
-        { value: 'purple-pink', label: 'Purple Pink' },
-        { value: 'indigo-purple', label: 'Indigo Purple' },
-        { value: 'blue-cyan', label: 'Blue Cyan' },
     ];
 
     useEffect(() => {
@@ -125,22 +83,7 @@ const SettingsPage: React.FC = () => {
     }, []);
 
     const handleMenuClick = (id: string) => {
-        setMenuItems(items => items.map(item => ({
-            ...item,
-            active: item.id === id
-        })));
         setActiveSection(id);
-    };
-
-    const handleToggleChange = (settings: ToggleSetting[], setSettings: React.Dispatch<React.SetStateAction<ToggleSetting[]>>, id: string) => {
-        setSettings(settings.map(setting => 
-            setting.id === id ? { ...setting, checked: !setting.checked } : setting
-        ));
-    };
-
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setProfileData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleNotificationToggleChange = (id: string) => {
@@ -150,11 +93,6 @@ const SettingsPage: React.FC = () => {
                 setting.id === id ? { ...setting, checked: !setting.checked } : setting
             )
         }));
-    };
-
-    const setMenuItems = (updater: (items: MenuItem[]) => MenuItem[]) => {
-        // This would normally update state, but we're using const for demo
-        console.log('Menu items updated');
     };
 
     return (
@@ -267,6 +205,7 @@ const SettingsPage: React.FC = () => {
                         {/* Profile Settings */}
                         {activeSection === 'profile' && (
                             <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                                {/* Profile Image Upload Card */}
                                 <div
                                     className={`group relative p-8 rounded-3xl backdrop-blur-xl border border-white/20 bg-white/10 dark:bg-gray-900/20 shadow-2xl transform transition-all duration-700 ease-out hover:scale-105 hover:shadow-2xl ${
                                         animate ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
@@ -276,6 +215,42 @@ const SettingsPage: React.FC = () => {
                                         transform: hoveredCard === 0 ? 'translateY(-8px) scale(1.02)' : ''
                                     }}
                                     onMouseEnter={() => setHoveredCard(0)}
+                                    onMouseLeave={() => setHoveredCard(null)}
+                                >
+                                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-500 opacity-0 group-hover:opacity-10 rounded-3xl transition-opacity duration-500"></div>
+                                    
+                                    <div className="relative z-10">
+                                        <div className="flex items-center space-x-4 mb-6">
+                                            <span className="text-4xl transform group-hover:scale-110 transition-transform duration-300">📸</span>
+                                            <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
+                                                Profile Picture
+                                            </h3>
+                                        </div>
+                                        
+                                        <ProfileImageUpload
+                                            currentImageUrl={user?.profileImageUrl}
+                                            onSuccess={() => {
+                                                setTimeout(() => {
+                                                    // Profile image updated
+                                                }, 1500);
+                                            }}
+                                            onError={(error) => {
+                                                console.error('Upload error:', error);
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Profile Edit Form Card */}
+                                <div
+                                    className={`group relative p-8 rounded-3xl backdrop-blur-xl border border-white/20 bg-white/10 dark:bg-gray-900/20 shadow-2xl transform transition-all duration-700 ease-out hover:scale-105 hover:shadow-2xl ${
+                                        animate ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
+                                    }`}
+                                    style={{ 
+                                        transitionDelay: `200ms`,
+                                        transform: hoveredCard === 1 ? 'translateY(-8px) scale(1.02)' : ''
+                                    }}
+                                    onMouseEnter={() => setHoveredCard(1)}
                                     onMouseLeave={() => setHoveredCard(null)}
                                 >
                                     <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-blue-500 opacity-0 group-hover:opacity-10 rounded-3xl transition-opacity duration-500"></div>
@@ -288,94 +263,46 @@ const SettingsPage: React.FC = () => {
                                             </h3>
                                         </div>
                                         
-                                        <div className="space-y-6">
-                                            <div>
-                                                <label className="block text-gray-700 dark:text-gray-200 font-medium mb-3">Full Name</label>
-                                                <input
-                                                    type="text"
-                                                    name="name"
-                                                    value={profileData.name}
-                                                    onChange={handleInputChange}
-                                                    className="w-full px-4 py-3 bg-white/20 dark:bg-gray-800/20 border border-white/30 rounded-xl text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-green-400 focus:ring-4 focus:ring-green-400/30 transition-all duration-300 backdrop-blur-sm"
-                                                    placeholder="Enter your full name"
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-gray-700 dark:text-gray-200 font-medium mb-3">Email Address</label>
-                                                <input
-                                                    type="email"
-                                                    name="email"
-                                                    value={profileData.email}
-                                                    onChange={handleInputChange}
-                                                    className="w-full px-4 py-3 bg-white/20 dark:bg-gray-800/20 border border-white/30 rounded-xl text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-400/30 transition-all duration-300 backdrop-blur-sm"
-                                                    placeholder="Enter your email"
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-gray-700 dark:text-gray-200 font-medium mb-3">Bio</label>
-                                                <input
-                                                    type="text"
-                                                    name="bio"
-                                                    value={profileData.bio}
-                                                    onChange={handleInputChange}
-                                                    className="w-full px-4 py-3 bg-white/20 dark:bg-gray-800/20 border border-white/30 rounded-xl text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-teal-400 focus:ring-4 focus:ring-teal-400/30 transition-all duration-300 backdrop-blur-sm"
-                                                    placeholder="Tell us about yourself"
-                                                />
-                                            </div>
-
-                                            <button className="w-full bg-gradient-to-r from-green-500 to-blue-500 text-white py-3 px-6 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-xl flex items-center justify-center gap-3 backdrop-blur-sm">
-                                                <span className="text-lg">💾</span>
-                                                Save Changes
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Additional profile settings card */}
-                                <div
-                                    className={`group relative p-8 rounded-3xl backdrop-blur-xl border border-white/20 bg-white/10 dark:bg-gray-900/20 shadow-2xl transform transition-all duration-700 ease-out hover:scale-105 hover:shadow-2xl ${
-                                        animate ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
-                                    }`}
-                                    style={{ 
-                                        transitionDelay: `300ms`,
-                                        transform: hoveredCard === 1 ? 'translateY(-8px) scale(1.02)' : ''
-                                    }}
-                                    onMouseEnter={() => setHoveredCard(1)}
-                                    onMouseLeave={() => setHoveredCard(null)}
-                                >
-                                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-500 opacity-0 group-hover:opacity-10 rounded-3xl transition-opacity duration-500"></div>
-                                    
-                                    <div className="relative z-10">
-                                        <div className="flex items-center space-x-4 mb-6">
-                                            <span className="text-4xl transform group-hover:scale-110 transition-transform duration-300">⚙️</span>
-                                            <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
-                                                Account Preferences
-                                            </h3>
-                                        </div>
-                                        
-                                        <div className="space-y-6">
-                                            {privacySettings.map((setting, index) => (
-                                                <div key={setting.id} className="flex items-center justify-between bg-white/5 rounded-xl p-4 transition-all duration-300 hover:bg-white/10">
-                                                    <div>
-                                                        <span className="block text-gray-700 dark:text-gray-200 font-medium">{setting.label}</span>
-                                                        <span className="text-gray-600 dark:text-gray-300 text-sm">{setting.description}</span>
-                                                    </div>
-                                                    <label className="relative inline-flex items-center cursor-pointer">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={setting.checked}
-                                                            onChange={() => handleToggleChange(privacySettings, setPrivacySettings, setting.id)}
-                                                            className="sr-only peer"
-                                                        />
-                                                        <div className={`w-14 h-7 bg-white/20 rounded-full peer peer-checked:after:translate-x-7 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all duration-300 ${
-                                                            setting.checked ? 'bg-gradient-to-r from-purple-500 to-pink-500' : ''
-                                                        }`}></div>
-                                                    </label>
+                                        {isEditingProfile ? (
+                                            <ProfileEditForm
+                                                onSuccess={() => setIsEditingProfile(false)}
+                                                onCancel={() => setIsEditingProfile(false)}
+                                            />
+                                        ) : (
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400 font-medium mb-1">First Name</p>
+                                                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                                                        {user?.firstname || 'Not set'}
+                                                    </p>
                                                 </div>
-                                            ))}
-                                        </div>
+                                                <div>
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400 font-medium mb-1">Last Name</p>
+                                                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                                                        {user?.lastname || 'Not set'}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400 font-medium mb-1">Email</p>
+                                                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                                                        {user?.email || 'Not set'}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400 font-medium mb-1">Bio</p>
+                                                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                                                        {user?.bio || 'No bio yet'}
+                                                    </p>
+                                                </div>
+                                                <button
+                                                    onClick={() => setIsEditingProfile(true)}
+                                                    className="w-full bg-gradient-to-r from-green-500 to-blue-500 text-white py-3 px-6 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-xl flex items-center justify-center gap-3 backdrop-blur-sm"
+                                                >
+                                                    <span className="text-lg">✏️</span>
+                                                    Edit Profile
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -402,7 +329,7 @@ const SettingsPage: React.FC = () => {
                                     </div>
                                     
                                     <div className="space-y-6">
-                                        {notificationSettings.toggles.map((setting, index) => (
+                                        {notificationSettings.toggles.map((setting) => (
                                             <div key={setting.id} className="flex items-center justify-between bg-white/5 rounded-xl p-4 transition-all duration-300 hover:bg-white/10">
                                                 <div>
                                                     <span className="block text-gray-700 dark:text-gray-200 font-medium">{setting.label}</span>

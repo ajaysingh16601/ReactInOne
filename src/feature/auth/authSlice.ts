@@ -243,6 +243,9 @@ const authSlice = createSlice({
       }
       state.hydrated = true;
     },
+    setUser: (state, action) => {
+      state.user = action.payload;
+    },
     resetToLogin: (state) => {
       state.step = "login";
       state.secret = null;
@@ -405,5 +408,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout, clearMessages, restoreAuth, hydrate, resetToLogin, googleLoginSuccess, googleLoginError, googleLoginLoading } = authSlice.actions;
+export const { logout, clearMessages, restoreAuth, hydrate, setUser, resetToLogin, googleLoginSuccess, googleLoginError, googleLoginLoading } = authSlice.actions;
 export default authSlice.reducer;

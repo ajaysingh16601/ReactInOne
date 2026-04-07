@@ -1,6 +1,6 @@
 // src/components/chat/MessageInput.tsx
 import React, { useState, useRef, useCallback } from 'react';
-import { FiSend, FiPaperclip, FiSmile } from 'react-icons/fi';
+import { FiSend, FiPaperclip, FiSmile, FiX } from 'react-icons/fi';
 import { useChat } from '../../hooks';
 
 interface MessageInputProps {
@@ -16,8 +16,10 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 }) => {
   const [message, setMessage] = useState('');
   const [attachments, setAttachments] = useState<File[]>([]);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
   const { handleStartTyping, handleStopTyping, isTyping } = useChat();
 
   const handleInputChange = useCallback((value: string) => {
@@ -100,8 +102,92 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  // Common emojis for quick access
+  const commonEmojis = [
+    '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣',
+    '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰',
+    '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜',
+    '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳', '😏',
+    '😒', '😞', '😔', '😟', '😕', '🙁', '😣', '😖',
+    '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡',
+    '👍', '👎', '👌', '✌️', '🤞', '🤟', '🤘', '👏',
+    '🙌', '👐', '🤲', '🤝', '🙏', '✍️', '💪', '🦾',
+    '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍',
+    '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘',
+    '💝', '💟', '☮️', '✝️', '☪️', '🕉️', '☸️', '✡️',
+    '🔯', '🕎', '☯️', '☦️', '🛐', '⛎', '♈', '♉',
+    '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑',
+    '♒', '♓', '🆔', '⚛️', '🉑', '☢️', '☣️', '📴',
+    '📳', '🈶', '🈚', '🈸', '🈺', '🈷️', '✴️', '🆚',
+    '💮', '🉐', '㊙️', '㊗️', '🈴', '🈵', '🈹', '🈲',
+    '🅰️', '🅱️', '🆎', '🆑', '🅾️', '🆘', '❌', '⭕',
+    '🛑', '⛔', '📛', '🚫', '💯', '💢', '♨️', '🚷',
+    '🚯', '🚳', '🚱', '🔞', '📵', '🚭', '❗', '❕',
+    '❓', '❔', '‼️', '⁉️', '🔅', '🔆', '〽️', '⚠️',
+    '🚸', '🔱', '⚜️', '🔰', '♻️', '✅', '🈯', '💹',
+    '❇️', '✳️', '❎', '🌐', '💠', 'Ⓜ️', '🌀', '💤',
+    '🏧', '🚾', '♿', '🅿️', '🈳', '🈂️', '🛂', '🛃',
+    '🛄', '🛅', '🚹', '🚺', '🚼', '🚻', '🚮', '🎦',
+    '📶', '🈁', '🔣', 'ℹ️', '🔤', '🔡', '🔠', '🆖',
+    '🆗', '🆙', '🆒', '🆕', '🆓', '0️⃣', '1️⃣', '2️⃣',
+    '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟',
+    '🔢', '#️⃣', '*️⃣', '▶️', '⏸', '⏯', '⏹', '⏺',
+    '⏭', '⏮', '⏩', '⏪', '⏫', '⏬', '◀️', '🔼',
+    '🔽', '➡️', '⬅️', '⬆️', '⬇️', '↗️', '↘️', '↙️',
+    '↖️', '↕️', '↔️', '↪️', '↩️', '⤴️', '⤵️', '🔀',
+    '🔁', '🔂', '🔄', '🔃', '🎵', '🎶', '➕', '➖',
+    '➗', '✖️', '💲', '💱', '™️', '©️', '®️', '〰️',
+    '➰', '➿', '🔚', '🔙', '🔛', '🔜', '🔝', '✔️',
+    '☑️', '🔘', '⚪', '⚫', '🔴', '🔵', '🟠', '🟡',
+    '🟢', '🟣', '🟤', '⚫', '🔶', '🔷', '🔸', '🔹',
+    '🔺', '🔻', '💠', '🔘', '🔳', '🔲', '▪️', '▫️',
+    '◾', '◽', '◼️', '◻️', '🟥', '🟧', '🟨', '🟩',
+    '🟦', '🟪', '🟫', '⬛', '⬜', '🔈', '🔇', '🔉',
+    '🔊', '🔔', '🔕', '📣', '📢', '👁‍🗨', '💬', '💭',
+    '🗯', '♠️', '♣️', '♥️', '♦️', '🃏', '🎴', '🀄',
+    '🕐', '🕑', '🕒', '🕓', '🕔', '🕕', '🕖', '🕗',
+    '🕘', '🕙', '🕚', '🕛', '🕜', '🕝', '🕞', '🕟',
+    '🕠', '🕡', '🕢', '🕣', '🕤', '🕥', '🕦', '🕧'
+  ];
+
+  const insertEmoji = (emoji: string) => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const text = message;
+      const newText = text.substring(0, start) + emoji + text.substring(end);
+      setMessage(newText);
+      handleInputChange(newText);
+      
+      // Set cursor position after emoji
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + emoji.length, start + emoji.length);
+        adjustTextareaHeight();
+      }, 0);
+    }
+    setShowEmojiPicker(false);
+  };
+
+  // Close emoji picker when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+
+    if (showEmojiPicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showEmojiPicker]);
+
   return (
-    <div className="p-4 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-t border-white/20 dark:border-gray-700/30">
+    <div className="flex-shrink-0 p-4 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-t border-white/20 dark:border-gray-700/30 sticky bottom-0 z-10">
       {/* Attachments Preview */}
       {attachments.length > 0 && (
         <div className="mb-3 flex flex-wrap gap-2">
@@ -137,7 +223,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       )}
 
       {/* Input Area */}
-      <div className="flex items-end space-x-3">
+      <div className="flex items-end space-x-2 sm:space-x-3 relative">
         {/* Attachment Button */}
         <button
           onClick={() => fileInputRef.current?.click()}
@@ -180,8 +266,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
           {/* Emoji Button */}
           <button
-            onClick={() => {
-            }}
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
             disabled={disabled}
             className="
               absolute right-3 top-1/2 transform -translate-y-1/2
@@ -189,16 +274,67 @@ export const MessageInput: React.FC<MessageInputProps> = ({
               hover:bg-white/30 dark:hover:bg-gray-800/30
               text-gray-600 dark:text-gray-400 hover:text-purple-500
               disabled:opacity-50 disabled:cursor-not-allowed
+              ${showEmojiPicker ? 'bg-white/30 dark:bg-gray-800/30 text-purple-500' : ''}
             "
           >
             <FiSmile className="w-5 h-5" />
           </button>
+
+          {/* Emoji Picker */}
+          {showEmojiPicker && (
+            <>
+              {/* Backdrop */}
+              <div 
+                className="fixed inset-0 z-40"
+                onClick={() => setShowEmojiPicker(false)}
+              />
+              <div
+                ref={emojiPickerRef}
+                className="
+                  absolute bottom-full right-0 mb-2 w-80 max-w-[calc(100vw-2rem)] h-64
+                  bg-white dark:bg-gray-800 backdrop-blur-xl
+                  border border-gray-200 dark:border-gray-700
+                  rounded-xl shadow-2xl p-4 z-50
+                  overflow-y-auto
+                "
+              >
+                <div className="flex items-center justify-between mb-3 sticky top-0 bg-white dark:bg-gray-800 pb-2 border-b border-gray-200 dark:border-gray-700">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                    Emojis
+                  </h3>
+                  <button
+                    onClick={() => setShowEmojiPicker(false)}
+                    className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <FiX className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-8 gap-2">
+                  {commonEmojis.map((emoji, index) => (
+                    <button
+                      key={index}
+                      onClick={() => insertEmoji(emoji)}
+                      className="
+                        text-2xl p-2 rounded-lg
+                        hover:bg-gray-200 dark:hover:bg-gray-700
+                        transition-colors duration-200
+                        focus:outline-none focus:ring-2 focus:ring-purple-500/50
+                      "
+                      title={emoji}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Send Button */}
         <button
           onClick={handleSend}
-          disabled={disabled || (!message.trim() && attachments.length === 0)}
+          disabled={disabled || (attachments.length === 0 && !message.trim())}
           className="
             p-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500
             text-white shadow-lg transition-all duration-300
